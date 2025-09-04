@@ -3,12 +3,15 @@ import { Grid, Typography, Box, CircularProgress, Alert, TextField, InputAdornme
 import SearchIcon from '@mui/icons-material/Search';
 import ProductCard from './ProductCard';
 import API from './axiosInstance';
+import { Button } from '@mui/material';
+import ShoppingCart from '@mui/icons-material/ShoppingCart';
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [cartCount] = useState(0);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -51,10 +54,11 @@ const ProductList = () => {
 
   return (
     <Box sx={{ py: 4 }}>
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 3 }}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
           Our Products
         </Typography>
+
         <TextField
           variant="outlined"
           placeholder="Search products..."
@@ -70,7 +74,17 @@ const ProductList = () => {
             sx: { backgroundColor: 'background.paper' }
           }}
         />
-      </Box>
+
+        </Box>
+        <Box sx={{ display: 'flex-end', alignItems: 'center', gap: 2 }}>
+        <Button
+          color="inherit"
+          startIcon={<ShoppingCart />}
+          href="/cart"
+        >
+          Cart ({cartCount})
+        </Button>
+        </Box>
 
       {filteredProducts.length === 0 ? (
         <Box textAlign="center" py={6}>

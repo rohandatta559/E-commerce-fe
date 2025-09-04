@@ -44,18 +44,16 @@ function Navigation() {
   const [cartCount] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(!!getAuthToken());
 
-  // Check for existing token on initial load
   useEffect(() => {
     const token = getAuthToken();
     if (token) {
-      // Optional: Verify token with backend
+      // Verify token with backend
       setIsLoggedIn(true);
     }
   }, []);
 
   const handleLoginSuccess = (user) => {
     setIsLoggedIn(true);
-    // You can store user data in context/state if needed
   };
 
   const handleLogout = () => {
@@ -111,14 +109,6 @@ function Navigation() {
                 </Button>
               </>
             )}
-            <Button
-              color="inherit"
-              startIcon={<ShoppingCart />}
-              component={RouterLink}
-              to="/cart"
-            >
-              Cart ({cartCount})
-            </Button>
           </Box>
         </Toolbar>
       </AppBar>
