@@ -11,20 +11,32 @@ import {
   Rating,
   Tooltip,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { AddShoppingCart, Favorite, FavoriteBorder } from '@mui/icons-material';
+import { useCart } from './contexts/CartContext';
 
 const ProductCard = ({ product }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { addToCart } = useCart();
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
-    // TODO: Implement add to cart functionality
-    console.log('Added to cart:', product._id);
+    addToCart(product);
+    setSnackbarOpen(true);
+  };
+
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setSnackbarOpen(false);
   };
 
   const toggleFavorite = (e) => {
@@ -33,20 +45,21 @@ const ProductCard = ({ product }) => {
   };
 
   return (
-    <Card
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
-        '&:hover': {
-          transform: 'translateY(-5px)',
-          boxShadow: theme.shadows[8],
-        },
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <>
+      <Card
+        sx={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: theme.shadows[8],
+          },
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
       <Box sx={{ position: 'relative' }}>
         <CardMedia
           component="img"
@@ -135,7 +148,18 @@ const ProductCard = ({ product }) => {
           Add to Cart
         </Button>
       </CardActions>
-    </Card>
+      </Card>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity="success" sx={{ width: '100%' }}>
+          {product.name} added to cart!
+        </Alert>
+      </Snackbar>
+    </>
   );
 };
 

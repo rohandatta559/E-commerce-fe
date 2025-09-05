@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import { Routes, Route, Link as RouterLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline, AppBar, Toolbar, Typography, Container, Box, Button } from '@mui/material';
 import { ShoppingCart, Login as LoginIcon, Person } from '@mui/icons-material';
+import { CartProvider } from './contexts/CartContext';
 import ProductList from './ProductListPage';
 import Login from './Login';
 import { getAuthToken, setAuthToken } from './services/api';
+import SignUp from './Sign-up';
+import CartPage from './CartPage';
 
 // Create a theme instance
 const theme = createTheme({
@@ -141,6 +144,14 @@ function Navigation() {
               </ProtectedRoute>
             }
           />
+          <Route 
+          path='/sign-up'
+          element={<SignUp/>}
+          />
+          <Route 
+          path='/cart'
+          element={<CartPage/>}
+          />
         </Routes>
       </Container>
 
@@ -160,8 +171,10 @@ function Navigation() {
 function App() {
   return (
     <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Navigation />
+      <CartProvider>
+        <CssBaseline />
+        <Navigation />
+      </CartProvider>
     </ThemeProvider>
   );
 }

@@ -246,7 +246,7 @@ const Login = ({ onLoginSuccess }) => {
                                 {"Don't have an account? "}
                                 <Link
                                     component={RouterLink}
-                                    to="/register"
+                                    to="/sign-up"
                                     variant="body2"
                                     sx={{ textDecoration: 'none' }}
                                 >
