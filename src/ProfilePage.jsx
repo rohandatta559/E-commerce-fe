@@ -83,10 +83,10 @@ const ProfilePage = () => {
 
                 <Box sx={{ mt: 3, display: 'flex', gap: 1.5 }}>
                   <Button variant="contained" disableElevation>
-                    Edit Profile's
+                    Edit Profile
                   </Button>
                   <Button variant="outlined" color="inherit">
-                    Change Password's
+                    Change Password
                   </Button>
                 </Box>
               </Box>
