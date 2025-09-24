@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Routes, Route, Link as RouterLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline, AppBar, Toolbar, Typography, Container, Box, Button } from '@mui/material';
+import { ThemeProvider, createTheme, CssBaseline, AppBar, Toolbar, Typography, Container, Box, Button, Badge } from '@mui/material';
 import { ShoppingCart, Login as LoginIcon, Person } from '@mui/icons-material';
-import { CartProvider } from './contexts/CartContext';
+import { CartProvider, useCart } from './contexts/CartContext';
 import ProductList from './ProductListPage';
 import Login from './Login';
 import { getAuthToken, setAuthToken } from './services/api';
 import SignUp from './Sign-up';
 import CartPage from './CartPage';
+import ProfilePage from './ProfilePage';
 
 // Create a theme instance
 const theme = createTheme({
@@ -44,8 +45,10 @@ const theme = createTheme({
 function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [cartCount] = useState(0);
+  const { cart } = useCart();
   const [isLoggedIn, setIsLoggedIn] = useState(!!getAuthToken());
+
+  const cartCount = cart.reduce((total, item) => total + (item.quantity || 1), 0);
 
   useEffect(() => {
     const token = getAuthToken();
@@ -78,42 +81,60 @@ function Navigation() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <AppBar position="static" elevation={0}>
-        <Toolbar>
-          <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
-            <ShoppingCart sx={{ mr: 1 }} />
-            <Typography variant="h6" component="div">
-              E-Commerce Store
-            </Typography>
-          </Box>
-          <Box sx={{ flexGrow: 1 }} />
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {!isLoggedIn ? (
-              <Button
-                color="inherit"
-                startIcon={<LoginIcon />}
-                onClick={handleLoginClick}
-                sx={{ display: { xs: 'none', sm: 'flex' } }}
+      <AppBar
+        position="sticky"
+        elevation={0}
+        sx={{
+          bgcolor: 'rgba(255,255,255,0.8)',
+          color: 'text.primary',
+          backdropFilter: 'saturate(180%) blur(10px)',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Container maxWidth="lg">
+          <Toolbar disableGutters sx={{ minHeight: 64 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box
+                component={RouterLink}
+                to="/"
+                sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}
               >
-                Login
-              </Button>
-            ) : (
-              <>
+                <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
+                  E-Commerce Store
+                </Typography>
+              </Box>
+            </Box>
+            <Box sx={{ flexGrow: 1 }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              {!isLoggedIn ? (
                 <Button
                   color="inherit"
-                  startIcon={<Person />}
-                  component={RouterLink}
-                  to="/profile"
+                  startIcon={<LoginIcon />}
+                  onClick={handleLoginClick}
+                  sx={{ display: { xs: 'none', sm: 'flex' }, textTransform: 'none', fontWeight: 600 }}
                 >
-                  Profile
+                  Login
                 </Button>
-                <Button color="inherit" onClick={handleLogout}>
-                  Logout
-                </Button>
-              </>
-            )}
-          </Box>
-        </Toolbar>
+              ) : (
+                <>
+                  <Button
+                    color="inherit"
+                    startIcon={<Person />}
+                    component={RouterLink}
+                    to="/profile"
+                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                  >
+                    Profile
+                  </Button>
+                  <Button color="inherit" onClick={handleLogout} sx={{ textTransform: 'none', fontWeight: 600 }}>
+                    Logout
+                  </Button>
+                </>
+              )}
+            </Box>
+          </Toolbar>
+        </Container>
       </AppBar>
 
       <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
@@ -151,6 +172,14 @@ function Navigation() {
           <Route 
           path='/cart'
           element={<CartPage/>}
+          />
+          <Route
+            path='/profile'
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
           />
         </Routes>
       </Container>

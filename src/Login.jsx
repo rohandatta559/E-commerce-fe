@@ -23,8 +23,27 @@ import {
     GitHub as GitHubIcon,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
+import { keyframes } from '@mui/system';
 import { useNavigate, Link as RouterLink, useLocation } from 'react-router-dom';
 import { loginUser, setAuthToken } from './services/api';
+
+// Animations
+const fadeInUp = keyframes`
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+`;
+
+const pulse = keyframes`
+  0% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+`;
+
+const blobMove = keyframes`
+  0% { transform: translate(0px, 0px) scale(1); }
+  50% { transform: translate(16px, -24px) scale(1.06); }
+  100% { transform: translate(0px, 0px) scale(1); }
+`;
 
 const Login = ({ onLoginSuccess }) => {
     const theme = useTheme();
@@ -91,15 +110,53 @@ const Login = ({ onLoginSuccess }) => {
     };
 
     return (
-        <Container component="main" maxWidth="xs">
+        <Container component="main" maxWidth="sm" sx={{ position: 'relative' }}>
             <Box
                 sx={{
-                    marginTop: 8,
+                    mt: { xs: 6, sm: 10 },
+                    mb: { xs: 6, sm: 10 },
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
+                    position: 'relative',
+                    minHeight: { xs: '70vh', sm: '60vh' },
+                    overflow: 'hidden',
                 }}
             >
+                {/* Background decorative blobs */}
+                <Box
+                    aria-hidden
+                    sx={{
+                        position: 'absolute',
+                        top: -80,
+                        left: -80,
+                        width: 220,
+                        height: 220,
+                        borderRadius: '50%',
+                        background: `radial-gradient(circle at 30% 30%, ${theme.palette.primary.light}, ${theme.palette.primary.main})`,
+                        opacity: 0.18,
+                        filter: 'blur(10px)',
+                        animation: `${blobMove} 10s ease-in-out infinite`,
+                        zIndex: 0,
+                    }}
+                />
+                <Box
+                    aria-hidden
+                    sx={{
+                        position: 'absolute',
+                        bottom: -60,
+                        right: -60,
+                        width: 260,
+                        height: 260,
+                        borderRadius: '50%',
+                        background: `radial-gradient(circle at 30% 30%, ${theme.palette.secondary.light}, ${theme.palette.secondary.main})`,
+                        opacity: 0.16,
+                        filter: 'blur(12px)',
+                        animation: `${blobMove} 12s ease-in-out infinite`,
+                        animationDelay: '500ms',
+                        zIndex: 0,
+                    }}
+                />
                 <Paper
                     elevation={3}
                     sx={{
@@ -109,6 +166,9 @@ const Login = ({ onLoginSuccess }) => {
                         alignItems: 'center',
                         width: '100%',
                         borderRadius: 2,
+                        animation: `${fadeInUp} 600ms ease 60ms both`,
+                        position: 'relative',
+                        zIndex: 1,
                     }}
                 >
                     <LockIcon
@@ -119,6 +179,8 @@ const Login = ({ onLoginSuccess }) => {
                             padding: 2,
                             borderRadius: '50%',
                             fontSize: 40,
+                            animation: `${pulse} 2500ms ease-in-out infinite`,
+                            boxShadow: `0 8px 20px rgba(25, 118, 210, 0.25)`,
                         }}
                     />
                     <Typography component="h1" variant="h5" sx={{ mt: 2, mb: 3 }}>

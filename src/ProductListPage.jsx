@@ -76,7 +76,7 @@ const ProductList = () => {
         />
 
         </Box>
-        <Box sx={{ display: 'flex-end', alignItems: 'center', gap: 2 }}>
+        {/* <Box sx={{ display: 'flex-end', alignItems: 'center', gap: 2 }}>
         <Button
           color="inherit"
           startIcon={<ShoppingCart />}
@@ -84,7 +84,7 @@ const ProductList = () => {
         >
           Cart ({cartCount})
         </Button>
-        </Box>
+        </Box> */}
 
       {filteredProducts.length === 0 ? (
         <Box textAlign="center" py={6}>
