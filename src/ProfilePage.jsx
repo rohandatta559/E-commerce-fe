@@ -12,7 +12,7 @@ import {
   Stack,
 } from '@mui/material';
 import { Person as PersonIcon, Email as EmailIcon, Phone as PhoneIcon } from '@mui/icons-material';
-import API from './axiosInstance';
+import { fetchProfile as fetchProfileApi } from './services/api';
 
 const ProfilePage = () => {
   const [user, setUser] = useState(null);
@@ -20,29 +20,36 @@ const ProfilePage = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    let isMounted = true;
+    const fetchProfileData = async () => {
       setLoading(true);
       setError('');
       try {
-        const { data } = await API.get('/auth/profile');
+        const data = await fetchProfileApi();
+        if (!isMounted) return;
         setUser(data.user || data);
       } catch (e) {
-        setError(e.message || 'Something went wrong');
+        if (!isMounted) return;
+        setError(e.message || 'Failed to load profile');
       } finally {
+        if (!isMounted) return;
         setLoading(false);
       }
     };
-
-    fetchProfile();
+    fetchProfileData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
 
   return (
     <Container maxWidth="md">
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+        <Typography 
+        variant="h4" sx={{ fontWeight: 700 }}>
           Your Profile
-        </Typography>
+        </Typography> 
 
         {loading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>

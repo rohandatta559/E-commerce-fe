@@ -45,7 +45,7 @@ const theme = createTheme({
 function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { cart } = useCart();
+  const { cart, } = useCart();
   const [isLoggedIn, setIsLoggedIn] = useState(!!getAuthToken());
 
   const cartCount = cart.reduce((total, item) => total + (item.quantity || 1), 0);

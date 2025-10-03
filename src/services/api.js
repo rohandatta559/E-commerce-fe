@@ -47,7 +47,7 @@ export const registerUser = async (name, email, password, phoneNumber) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${getAuthToken()}`,
-        'x-csrf-token': getCsrfToken(),
+        'X-CSRF-Token': getCsrfToken(),
       },
       body: JSON.stringify({ name, email, password, phoneNumber }),
     });
@@ -76,3 +76,5 @@ export const setAuthToken = (token) => {
 export const getAuthToken = () => {
   return localStorage.getItem('token');
 };
+
+export const fetchProfile = () => API.get('/auth/profile')
