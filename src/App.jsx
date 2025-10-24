@@ -19,10 +19,10 @@ const theme = createTheme({
     secondary: {
       main: '#dc004e',
     },
-    background: {
-      default: '#f5f5f5',
-    },
-  },
+  //   background: {
+  //     default: '#f5f5f5',
+  //   },
+  // },
   typography: {
     fontFamily: [
       '-apple-system',
