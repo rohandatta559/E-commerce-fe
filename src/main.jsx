@@ -17,10 +17,10 @@ const theme = createTheme({
       main: '#dc004e',
       contrastText: '#fff',
     },
-    background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
-    },
+    // background: {
+    //   default: '#f5f5f5',
+    //   paper: '#ffffff',
+    // },
   },
   typography: {
     fontFamily: [
