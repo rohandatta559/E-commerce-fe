@@ -19,10 +19,10 @@ const theme = createTheme({
     secondary: {
       main: '#dc004e',
     },
-  //   background: {
-  //     default: '#f5f5f5',
-  //   },
-  // },
+    background: {
+      default: '#f5f5f5',
+    },
+  },
   typography: {
     fontFamily: [
       '-apple-system',
@@ -100,9 +100,9 @@ function Navigation() {
                 to="/"
                 sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}
               >
-                <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
+                {/* <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
                   E-Commerce Store
-                </Typography>
+                </Typography> */}
               </Box>
             </Box>
             <Box sx={{ flexGrow: 1 }} />
