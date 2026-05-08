@@ -155,7 +155,7 @@ const CartPage = () => {
               variant="contained"
               color="primary"
               size="large"
-              onClick={() => alert('Proceeding to checkout')}
+              onClick={() => navigate('/checkout')}
               disabled={cartCount === 0}
             >
               Proceed to Checkout

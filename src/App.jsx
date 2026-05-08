@@ -1,6 +1,6 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, Link as RouterLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline, AppBar, Toolbar, Typography, Container, Box, Button, Badge } from '@mui/material';
+import { AppBar, Toolbar, Typography, Container, Box, Button, Badge } from '@mui/material';
 import { ShoppingCart, Login as LoginIcon, Person } from '@mui/icons-material';
 import { CartProvider, useCart } from './contexts/CartContext';
 import ProductList from './ProductListPage';
@@ -9,61 +9,41 @@ import { getAuthToken, setAuthToken } from './services/api';
 import SignUp from './Sign-up';
 import CartPage from './CartPage';
 import ProfilePage from './ProfilePage';
-
-// Create a theme instance
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-    background: {
-      default: '#f5f5f5',
-    },
-  },
-  typography: {
-    fontFamily: [
-      '-apple-system',
-      'BlinkMacSystemFont',
-      '"Segoe UI"',
-      'Roboto',
-      '"Helvetica Neue"',
-      'Arial',
-      'sans-serif',
-      '"Apple Color Emoji"',
-      '"Segoe UI Emoji"',
-      '"Segoe UI Symbol"',
-    ].join(','),
-    h4: {
-      fontWeight: 600,
-    },
-  },
-});
+import CheckoutPage from './CheckoutPage';
+import OrdersPage from './OrdersPage';
+import ProductDetailsPage from './ProductDetailsPage';
 
 function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { cart, } = useCart();
+  const { cart } = useCart();
   const [isLoggedIn, setIsLoggedIn] = useState(!!getAuthToken());
 
   const cartCount = cart.reduce((total, item) => total + (item.quantity || 1), 0);
 
   useEffect(() => {
-    const token = getAuthToken();
-    if (token) {
-      // Verify token with backend
-      setIsLoggedIn(true);
-    }
-  }, []);
+    setIsLoggedIn(!!getAuthToken());
+  }, [location.pathname]);
 
-  const handleLoginSuccess = (user) => {
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setIsLoggedIn(false);
+      navigate('/login', { replace: true });
+    };
+
+    window.addEventListener('auth:expired', handleAuthExpired);
+    return () => {
+      window.removeEventListener('auth:expired', handleAuthExpired);
+    };
+  }, [navigate]);
+
+  const handleAuthSuccess = () => {
     setIsLoggedIn(true);
   };
 
   const handleLogout = () => {
     setAuthToken(null);
+    localStorage.removeItem('userName');
     setIsLoggedIn(false);
     navigate('/login');
   };
@@ -97,16 +77,29 @@ function Navigation() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Box
                 component={RouterLink}
-                to="/"
+                to={isLoggedIn ? '/products' : '/login'}
                 sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}
               >
-                {/* <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
+                <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
                   E-Commerce Store
-                </Typography> */}
+                </Typography>
               </Box>
             </Box>
             <Box sx={{ flexGrow: 1 }} />
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              {isLoggedIn && (
+                <Button
+                  color="inherit"
+                  component={RouterLink}
+                  to="/cart"
+                  startIcon={<ShoppingCart />}
+                  sx={{ textTransform: 'none', fontWeight: 600 }}
+                >
+                  <Badge badgeContent={cartCount} color="primary">
+                    Cart
+                  </Badge>
+                </Button>
+              )}
               {!isLoggedIn ? (
                 <Button
                   color="inherit"
@@ -118,6 +111,9 @@ function Navigation() {
                 </Button>
               ) : (
                 <>
+                  <Button color="inherit" component={RouterLink} to="/orders" sx={{ textTransform: 'none', fontWeight: 600 }}>
+                    Orders
+                  </Button>
                   <Button
                     color="inherit"
                     startIcon={<Person />}
@@ -146,7 +142,7 @@ function Navigation() {
                 <Navigate to="/products" replace />
               ) : (
                 <Login
-                  onLoginSuccess={handleLoginSuccess}
+                  onLoginSuccess={handleAuthSuccess}
                 />
               )
             }
@@ -165,13 +161,41 @@ function Navigation() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/products/:id"
+            element={
+              <ProtectedRoute>
+                <ProductDetailsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route 
           path='/sign-up'
-          element={<SignUp/>}
+          element={<SignUp onSignUpSuccess={handleAuthSuccess} />}
           />
           <Route 
           path='/cart'
-          element={<CartPage/>}
+          element={
+            <ProtectedRoute>
+              <CartPage />
+            </ProtectedRoute>
+          }
+          />
+          <Route
+          path='/checkout'
+          element={
+            <ProtectedRoute>
+              <CheckoutPage />
+            </ProtectedRoute>
+          }
+          />
+          <Route
+          path='/orders'
+          element={
+            <ProtectedRoute>
+              <OrdersPage />
+            </ProtectedRoute>
+          }
           />
           <Route
             path='/profile'
@@ -199,12 +223,9 @@ function Navigation() {
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CartProvider>
-        <CssBaseline />
-        <Navigation />
-      </CartProvider>
-    </ThemeProvider>
+    <CartProvider>
+      <Navigation />
+    </CartProvider>
   );
 }
 

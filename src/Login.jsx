@@ -93,6 +93,8 @@ const Login = ({ onLoginSuccess }) => {
         try {
             const { token, user } = await loginUser(formData.email, formData.password);
             setAuthToken(token);
+            const displayName = user?.fullName || user?.name || 'User';
+            localStorage.setItem('userName', displayName);
             if (onLoginSuccess) {
                 onLoginSuccess(user);
                 const from = location.state?.from || '/products';

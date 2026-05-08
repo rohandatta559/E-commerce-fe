@@ -1,4 +1,12 @@
-const API_BASE_URL = 'https://e-commerce-be-jp32.onrender.com';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/$/, '');
+
+const clearAuthSession = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('userName');
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('auth:expired'));
+  }
+};
 
 // Helper function to handle API responses
 const handleResponse = async (response) => {
@@ -12,6 +20,9 @@ const handleResponse = async (response) => {
   const data = await response.json();
   
   if (!response.ok) {
+    if (response.status === 401) {
+      clearAuthSession();
+    }
     throw new Error(data.message || 'Something went wrong');
   }
   
@@ -45,7 +56,7 @@ export const registerUser = async (name, email, password, phoneNumber) => {
         ...(getAuthToken() && { 'Authorization': `Bearer ${getAuthToken()}` }),
       },
       credentials: 'include',
-      body: JSON.stringify({ name, email, password, phoneNumber }),
+      body: JSON.stringify({ fullName: name, email, password, phoneNumber }),
     });
 
     if (!response.ok) {
@@ -64,7 +75,7 @@ export const setAuthToken = (token) => {
   if (token) {
     localStorage.setItem('token', token);
   } else {
-    localStorage.removeItem('token');
+    clearAuthSession();
   }
 };
 

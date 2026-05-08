@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { TextField, Button, Typography, Box, Paper, Container, Alert, CircularProgress } from "@mui/material";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link as RouterLink } from "react-router-dom";
 import { registerUser, setAuthToken } from "./services/api";
 
 const SignUp = ({ onSignUpSuccess }) => {
@@ -35,10 +35,11 @@ const SignUp = ({ onSignUpSuccess }) => {
             );
             
             setAuthToken(token);
+            localStorage.setItem('userName', user?.fullName || formData.name || 'User');
             if (onSignUpSuccess) {
                 onSignUpSuccess(user);
             }
-            const from = location.state?.from || '/';
+            const from = location.state?.from || '/products';
             navigate(from, { replace: true });
             
         } catch (err) {
@@ -127,9 +128,9 @@ const SignUp = ({ onSignUpSuccess }) => {
                     <Box sx={{ textAlign: 'center', mt: 2 }}>
                         <Typography variant="body2" color="text.secondary">
                             Already have an account?{' '}
-                            <Button 
-                                component="a" 
-                                href="/login" 
+                            <Button
+                                component={RouterLink}
+                                to="/login"
                                 variant="text" 
                                 size="small"
                                 sx={{ textTransform: 'none' }}
