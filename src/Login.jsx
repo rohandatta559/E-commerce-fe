@@ -167,30 +167,32 @@ const Login = ({ onLoginSuccess }) => {
                         flexDirection: 'column',
                         alignItems: 'center',
                         width: '100%',
-                        borderRadius: 2,
+                        borderRadius: 4,
                         animation: `${fadeInUp} 600ms ease 60ms both`,
                         position: 'relative',
                         zIndex: 1,
+                        background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(248,250,252,0.95))',
+                        border: '1px solid rgba(124,58,237,0.12)',
                     }}
                 >
                     <LockIcon
                         sx={{
                             margin: 1,
-                            backgroundColor: theme.palette.primary.main,
+                            backgroundColor: 'linear-gradient(135deg, #7c3aed, #ec4899)',
                             color: 'white',
                             padding: 2,
                             borderRadius: '50%',
                             fontSize: 40,
                             animation: `${pulse} 2500ms ease-in-out infinite`,
-                            boxShadow: `0 8px 20px rgba(25, 118, 210, 0.25)`,
+                            boxShadow: `0 8px 20px rgba(124, 58, 237, 0.25)`,
                         }}
                     />
-                    <Typography component="h1" variant="h5" sx={{ mt: 2, mb: 3 }}>
+                    <Typography component="h1" variant="h5" sx={{ mt: 2, mb: 3, fontWeight: 700 }}>
                         Sign in
                     </Typography>
 
                     {error && (
-                        <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+                        <Alert severity="error" sx={{ width: '100%', mb: 2, borderRadius: 2 }}>
                             {error}
                         </Alert>
                     )}
@@ -214,9 +216,15 @@ const Login = ({ onLoginSuccess }) => {
                             InputProps={{
                                 startAdornment: (
                                     <InputAdornment position="start">
-                                        <EmailIcon color="action" />
+                                        <EmailIcon color="primary" />
                                     </InputAdornment>
                                 ),
+                            }}
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 2,
+                                    '&:hover fieldset': { borderColor: 'primary.main' },
+                                },
                             }}
                         />
                         <TextField
@@ -233,7 +241,7 @@ const Login = ({ onLoginSuccess }) => {
                             InputProps={{
                                 startAdornment: (
                                     <InputAdornment position="start">
-                                        <LockIcon color="action" />
+                                        <LockIcon color="primary" />
                                     </InputAdornment>
                                 ),
                                 endAdornment: (
@@ -248,6 +256,12 @@ const Login = ({ onLoginSuccess }) => {
                                     </InputAdornment>
                                 ),
                             }}
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 2,
+                                    '&:hover fieldset': { borderColor: 'primary.main' },
+                                },
+                            }}
                         />
 
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
@@ -255,7 +269,7 @@ const Login = ({ onLoginSuccess }) => {
                                 component={RouterLink}
                                 to="/forgot-password"
                                 variant="body2"
-                                sx={{ textDecoration: 'none' }}
+                                sx={{ textDecoration: 'none', color: 'primary.main', fontWeight: 600 }}
                             >
                                 Forgot password?
                             </Link>
@@ -266,7 +280,15 @@ const Login = ({ onLoginSuccess }) => {
                             fullWidth
                             variant="contained"
                             disabled={isLoading}
-                            sx={{ mt: 3, mb: 2, py: 1.5 }}
+                            sx={{
+                                mt: 3,
+                                mb: 2,
+                                py: 1.5,
+                                borderRadius: 3,
+                                fontWeight: 700,
+                                background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+                                boxShadow: '0 8px 24px rgba(124,58,237,0.3)',
+                            }}
                         >
                             {isLoading ? (
                                 <CircularProgress size={24} color="inherit" />
@@ -275,49 +297,50 @@ const Login = ({ onLoginSuccess }) => {
                             )}
                         </Button>
 
-                        <Divider sx={{ my: 2 }}>OR</Divider>
-
-                        <Box
-                            sx={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                gap: 2,
-                                mb: 2,
-                            }}
-                        >
-                            <IconButton
-                                onClick={() => handleSocialLogin('google')}
-                                sx={{ border: '1px solid #ddd' }}
-                            >
-                                <GoogleIcon color="error" />
-                            </IconButton>
-                            <IconButton
-                                onClick={() => handleSocialLogin('facebook')}
-                                sx={{ border: '1px solid #ddd' }}
-                            >
-                                <FacebookIcon color="primary" />
-                            </IconButton>
-                            <IconButton
-                                onClick={() => handleSocialLogin('github')}
-                                sx={{ border: '1px solid #ddd' }}
-                            >
-                                <GitHubIcon />
-                            </IconButton>
-                        </Box>
-
                         <Box sx={{ textAlign: 'center', mt: 2 }}>
                             <Typography variant="body2" color="text.secondary">
-                                {"Don't have an account? "}
-                                <Link
+                                Don't have an account?{' '}
+                                <Button
                                     component={RouterLink}
                                     to="/sign-up"
-                                    variant="body2"
-                                    sx={{ textDecoration: 'none' }}
+                                    variant="text"
+                                    size="small"
+                                    sx={{ textTransform: 'none', fontWeight: 600, color: 'secondary.main' }}
                                 >
                                     Sign Up
-                                </Link>
+                                </Button>
                             </Typography>
                         </Box>
+                    </Box>
+
+                    <Divider sx={{ my: 2 }}>OR</Divider>
+
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            gap: 2,
+                            mb: 2,
+                        }}
+                    >
+                        <IconButton
+                            onClick={() => handleSocialLogin('google')}
+                            sx={{ border: '1px solid #ddd' }}
+                        >
+                            <GoogleIcon color="error" />
+                        </IconButton>
+                        <IconButton
+                            onClick={() => handleSocialLogin('facebook')}
+                            sx={{ border: '1px solid #ddd' }}
+                        >
+                            <FacebookIcon color="primary" />
+                        </IconButton>
+                        <IconButton
+                            onClick={() => handleSocialLogin('github')}
+                            sx={{ border: '1px solid #ddd' }}
+                        >
+                            <GitHubIcon />
+                        </IconButton>
                     </Box>
                 </Paper>
             </Box>

@@ -156,11 +156,35 @@ const ProductList = () => {
 
   return (
     <Box sx={{ py: 4 }}>
+      <Paper
+        sx={{
+          mb: 4,
+          p: 4,
+          background: 'linear-gradient(135deg, rgba(124,58,237,0.9), rgba(236,72,153,0.9))',
+          color: 'common.white',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+          Discover bright deals for every style
+        </Typography>
+        <Typography variant="body1" sx={{ maxWidth: 620, opacity: 0.92 }}>
+          Browse curated collections with vibrant product cards, playful badges, and easy cart access.
+        </Typography>
+        <Box sx={{ mt: 3, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          <Chip label="Trending" color="secondary" />
+          <Chip label="New Arrivals" color="info" />
+          <Chip label="Free Shipping" color="success" />
+          <Chip label="Top Rated" color="warning" />
+        </Box>
+      </Paper>
+
       <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
           Welcome, {fullName}
         </Typography>
-        <Button color="inherit" startIcon={<ShoppingCart />} component={RouterLink} to="/cart">
+        <Button variant="contained" color="secondary" startIcon={<ShoppingCart />} component={RouterLink} to="/cart">
           Cart ({cartCount})
         </Button>
       </Box>

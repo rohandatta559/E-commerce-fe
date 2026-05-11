@@ -33,69 +33,99 @@ const CartPage = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Shopping Cart ({cartCount} {cartCount === 1 ? 'item' : 'items'})
-      </Typography>
-      
+      <Paper
+        sx={{
+          p: 4,
+          background: 'linear-gradient(135deg, rgba(124,58,237,0.9), rgba(236,72,153,0.9))',
+          color: 'common.white',
+          borderRadius: 4,
+          mb: 4,
+        }}
+      >
+        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+          Shopping Cart
+        </Typography>
+        <Typography variant="body1" sx={{ opacity: 0.92 }}>
+          Review your items and proceed to checkout
+        </Typography>
+      </Paper>
+
       <Grid container spacing={4}>
         <Grid item xs={12} md={8}>
-          <TableContainer component={Paper} elevation={2}>
+          <TableContainer
+            component={Paper}
+            elevation={2}
+            sx={{
+              borderRadius: 4,
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(248,250,252,0.95))',
+              border: '1px solid rgba(124,58,237,0.12)',
+            }}
+          >
             <Table>
               <TableHead>
-                <TableRow>
-                  <TableCell>Product</TableCell>
-                  <TableCell align="center">Price</TableCell>
-                  <TableCell align="center">Quantity</TableCell>
-                  <TableCell align="right">Total</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                <TableRow sx={{ bgcolor: 'rgba(124,58,237,0.08)' }}>
+                  <TableCell sx={{ fontWeight: 700, color: 'primary.main' }}>Product</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, color: 'primary.main' }}>Price</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, color: 'primary.main' }}>Quantity</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, color: 'primary.main' }}>Total</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700, color: 'primary.main' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {cart.map((item) => (
-                  <TableRow key={item._id}>
+                  <TableRow key={item._id} sx={{ '&:hover': { bgcolor: 'rgba(124,58,237,0.04)' } }}>
                     <TableCell>
                       <Box display="flex" alignItems="center">
                         <Box
                           component="img"
                           src={item.image || 'https://placehold.co/50x50?text=No+Image'}
                           alt={item.name}
-                          sx={{ width: 50, height: 50, objectFit: 'cover', mr: 2, borderRadius: 1 }}
+                          sx={{ width: 60, height: 60, objectFit: 'cover', mr: 3, borderRadius: 2 }}
                         />
-                        <Typography variant="body1">
+                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
                           {item.name}
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell align="center">${item.price.toFixed(2)}</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600 }}>${item.price.toFixed(2)}</TableCell>
                     <TableCell align="center">
                       <Box display="flex" alignItems="center" justifyContent="center">
-                        <IconButton 
-                          size="small" 
+                        <IconButton
+                          size="small"
                           onClick={() => updateQuantity(item._id, item.quantity - 1)}
-                          aria-label="reduce quantity"
+                          sx={{
+                            bgcolor: 'rgba(124,58,237,0.1)',
+                            '&:hover': { bgcolor: 'rgba(124,58,237,0.2)' },
+                          }}
                         >
                           <RemoveIcon fontSize="small" />
                         </IconButton>
-                        <Typography variant="body1" mx={1}>
+                        <Typography variant="body1" mx={2} sx={{ fontWeight: 600 }}>
                           {item.quantity}
                         </Typography>
-                        <IconButton 
-                          size="small" 
+                        <IconButton
+                          size="small"
                           onClick={() => updateQuantity(item._id, item.quantity + 1)}
-                          aria-label="increase quantity"
+                          sx={{
+                            bgcolor: 'rgba(124,58,237,0.1)',
+                            '&:hover': { bgcolor: 'rgba(124,58,237,0.2)' },
+                          }}
                         >
                           <AddIcon fontSize="small" />
                         </IconButton>
                       </Box>
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>
                       ${(item.price * item.quantity).toFixed(2)}
                     </TableCell>
                     <TableCell align="right">
-                      <IconButton 
+                      <IconButton
                         onClick={() => removeFromCart(item._id)}
                         color="error"
-                        aria-label="remove from cart"
+                        sx={{
+                          bgcolor: 'rgba(239,68,68,0.1)',
+                          '&:hover': { bgcolor: 'rgba(239,68,68,0.2)' },
+                        }}
                       >
                         <DeleteIcon />
                       </IconButton>
@@ -105,13 +135,20 @@ const CartPage = () => {
               </TableBody>
             </Table>
           </TableContainer>
-          
-          <Box mt={2} display="flex" justifyContent="space-between">
+
+          <Box mt={3} display="flex" justifyContent="space-between">
             <Button
               component={Link}
               to="/products"
               variant="outlined"
-              sx={{ mt: 2 }}
+              sx={{
+                borderRadius: 3,
+                px: 4,
+                py: 1.5,
+                fontWeight: 700,
+                borderColor: 'rgba(124,58,237,0.3)',
+                '&:hover': { borderColor: 'primary.main' },
+              }}
             >
               Continue Shopping
             </Button>
@@ -119,37 +156,50 @@ const CartPage = () => {
               variant="outlined"
               color="error"
               onClick={clearCart}
-              sx={{ mt: 2 }}
+              sx={{
+                borderRadius: 3,
+                px: 4,
+                py: 1.5,
+                fontWeight: 700,
+              }}
             >
               Clear Cart
             </Button>
           </Box>
         </Grid>
-        
+
         <Grid item xs={12} md={4}>
-          <Paper elevation={2} sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper
+            elevation={2}
+            sx={{
+              p: 4,
+              borderRadius: 4,
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(248,250,252,0.95))',
+              border: '1px solid rgba(124,58,237,0.12)',
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', mb: 3 }}>
               Order Summary
             </Typography>
-            <Divider sx={{ my: 2 }} />
-            
-            <Box display="flex" justifyContent="space-between" mb={1}>
-              <Typography>Subtotal ({cartCount} {cartCount === 1 ? 'item' : 'items'})</Typography>
-              <Typography>${cartTotal.toFixed(2)}</Typography>
+            <Divider sx={{ my: 2, borderColor: 'rgba(124,58,237,0.2)' }} />
+
+            <Box display="flex" justifyContent="space-between" mb={2}>
+              <Typography sx={{ fontWeight: 600 }}>Subtotal ({cartCount} {cartCount === 1 ? 'item' : 'items'})</Typography>
+              <Typography sx={{ fontWeight: 600 }}>${cartTotal.toFixed(2)}</Typography>
             </Box>
-            
+
             <Box display="flex" justifyContent="space-between" mb={3}>
-              <Typography>Shipping</Typography>
-              <Typography>Free</Typography>
+              <Typography sx={{ fontWeight: 600 }}>Shipping</Typography>
+              <Typography sx={{ fontWeight: 600, color: 'success.main' }}>Free</Typography>
             </Box>
-            
-            <Divider sx={{ my: 2 }} />
-            
-            <Box display="flex" justifyContent="space-between" mb={3}>
-              <Typography variant="h6">Total</Typography>
-              <Typography variant="h6">${cartTotal.toFixed(2)}</Typography>
+
+            <Divider sx={{ my: 2, borderColor: 'rgba(124,58,237,0.2)' }} />
+
+            <Box display="flex" justifyContent="space-between" mb={4}>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>Total</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>${cartTotal.toFixed(2)}</Typography>
             </Box>
-            
+
             <Button
               fullWidth
               variant="contained"
@@ -157,6 +207,13 @@ const CartPage = () => {
               size="large"
               onClick={() => navigate('/checkout')}
               disabled={cartCount === 0}
+              sx={{
+                borderRadius: 3,
+                py: 2,
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+                boxShadow: '0 8px 24px rgba(124,58,237,0.3)',
+              }}
             >
               Proceed to Checkout
             </Button>

@@ -106,67 +106,169 @@ const ProfilePage = () => {
   return (
     <Container maxWidth="md">
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>
-          Your Profile
-        </Typography>
+        <Paper
+          sx={{
+            p: 4,
+            background: 'linear-gradient(135deg, rgba(124,58,237,0.9), rgba(236,72,153,0.9))',
+            color: 'common.white',
+            borderRadius: 4,
+            mb: 2,
+          }}
+        >
+          <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+            Your Profile
+          </Typography>
+          <Typography variant="body1" sx={{ opacity: 0.92 }}>
+            Manage your account details and preferences
+          </Typography>
+        </Paper>
 
         {loading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-            <CircularProgress />
+            <CircularProgress sx={{ color: 'primary.main' }} />
           </Box>
         )}
 
-        {!!error && <Alert severity="error">{error}</Alert>}
+        {!!error && <Alert severity="error" sx={{ borderRadius: 3 }}>{error}</Alert>}
 
         {!loading && !error && user && (
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems={{ xs: 'center', sm: 'flex-start' }}>
-              <Avatar sx={{ width: 96, height: 96, bgcolor: 'primary.main' }}>
+          <Paper
+            elevation={2}
+            sx={{
+              p: 4,
+              borderRadius: 4,
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(248,250,252,0.95))',
+              border: '1px solid rgba(124,58,237,0.12)',
+            }}
+          >
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={4} alignItems={{ xs: 'center', sm: 'flex-start' }}>
+              <Avatar
+                sx={{
+                  width: 120,
+                  height: 120,
+                  bgcolor: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+                  fontSize: '3rem',
+                  boxShadow: '0 20px 40px rgba(124,58,237,0.3)',
+                }}
+              >
                 <PersonIcon fontSize="large" />
               </Avatar>
               <Box sx={{ flex: 1, width: '100%' }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main', mb: 1 }}>
                   {user.fullName || user.name || 'Unnamed User'}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Member since {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                 </Typography>
 
-                <Divider sx={{ my: 2 }} />
+                <Divider sx={{ my: 3, borderColor: 'rgba(124,58,237,0.2)' }} />
 
-                <Stack spacing={1.2}>
+                <Stack spacing={2}>
                   {isEditing ? (
                     <>
-                      <TextField label="Full Name" value={formData.fullName} onChange={handleChange('fullName')} fullWidth size="small" />
-                      <TextField label="Email" type="email" value={formData.email} onChange={handleChange('email')} fullWidth size="small" />
-                      <TextField label="Phone Number" value={formData.phoneNumber} onChange={handleChange('phoneNumber')} fullWidth size="small" />
+                      <TextField
+                        label="Full Name"
+                        value={formData.fullName}
+                        onChange={handleChange('fullName')}
+                        fullWidth
+                        size="small"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                            '&:hover fieldset': { borderColor: 'primary.main' },
+                          },
+                        }}
+                      />
+                      <TextField
+                        label="Email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleChange('email')}
+                        fullWidth
+                        size="small"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                            '&:hover fieldset': { borderColor: 'primary.main' },
+                          },
+                        }}
+                      />
+                      <TextField
+                        label="Phone Number"
+                        value={formData.phoneNumber}
+                        onChange={handleChange('phoneNumber')}
+                        fullWidth
+                        size="small"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: 2,
+                            '&:hover fieldset': { borderColor: 'primary.main' },
+                          },
+                        }}
+                      />
                     </>
                   ) : (
                     <>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <EmailIcon fontSize="small" color="action" />
-                        <Typography variant="body1">{user.email || '-'}</Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, borderRadius: 2, bgcolor: 'rgba(124,58,237,0.08)' }}>
+                        <EmailIcon sx={{ color: 'primary.main' }} />
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.email || '-'}</Typography>
                       </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <PhoneIcon fontSize="small" color="action" />
-                        <Typography variant="body1">{user.phoneNumber || user.phone || '-'}</Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, borderRadius: 2, bgcolor: 'rgba(236,72,153,0.08)' }}>
+                        <PhoneIcon sx={{ color: 'secondary.main' }} />
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.phoneNumber || user.phone || '-'}</Typography>
                       </Box>
                     </>
                   )}
                 </Stack>
 
-                <Box sx={{ mt: 3, display: 'flex', gap: 1.5 }}>
+                <Box sx={{ mt: 4, display: 'flex', gap: 2 }}>
                   {isEditing ? (
                     <>
-                      <Button variant="contained" disableElevation onClick={handleSave} disabled={isSaving}>
-                        {isSaving ? 'Saving...' : 'Save'}
+                      <Button
+                        variant="contained"
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        sx={{
+                          borderRadius: 3,
+                          px: 4,
+                          py: 1.5,
+                          fontWeight: 700,
+                          background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+                          boxShadow: '0 8px 24px rgba(124,58,237,0.3)',
+                        }}
+                      >
+                        {isSaving ? 'Saving...' : 'Save Changes'}
                       </Button>
-                      <Button variant="outlined" color="inherit" onClick={handleCancel} disabled={isSaving}>
+                      <Button
+                        variant="outlined"
+                        color="inherit"
+                        onClick={handleCancel}
+                        disabled={isSaving}
+                        sx={{
+                          borderRadius: 3,
+                          px: 4,
+                          py: 1.5,
+                          fontWeight: 700,
+                          borderColor: 'rgba(124,58,237,0.3)',
+                          '&:hover': { borderColor: 'primary.main' },
+                        }}
+                      >
                         Cancel
                       </Button>
                     </>
                   ) : (
-                    <Button variant="contained" disableElevation onClick={() => setIsEditing(true)}>
+                    <Button
+                      variant="contained"
+                      onClick={() => setIsEditing(true)}
+                      sx={{
+                        borderRadius: 3,
+                        px: 4,
+                        py: 1.5,
+                        fontWeight: 700,
+                        background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
+                        boxShadow: '0 8px 24px rgba(124,58,237,0.3)',
+                      }}
+                    >
                       Edit Profile
                     </Button>
                   )}

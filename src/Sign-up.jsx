@@ -50,8 +50,19 @@ const SignUp = ({ onSignUpSuccess }) => {
     };
     return (
         <Container component="main" maxWidth="xs">
-            <Paper elevation={3} sx={{ p: 4, mt: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
+            <Paper
+                elevation={3}
+                sx={{
+                    p: 4,
+                    mt: 8,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    background: 'linear-gradient(180deg, rgba(124,58,237,0.12), rgba(236,72,153,0.08))',
+                    border: '1px solid rgba(124,58,237,0.12)',
+                }}
+            >
+                <Typography component="h1" variant="h5" sx={{ mb: 3, fontWeight: 700 }}>
                     Create an Account
                 </Typography>
                 {error && (

@@ -65,11 +65,12 @@ function Navigation() {
         position="sticky"
         elevation={0}
         sx={{
-          bgcolor: 'rgba(255,255,255,0.8)',
+          bgcolor: 'rgba(255,255,255,0.95)',
           color: 'text.primary',
-          backdropFilter: 'saturate(180%) blur(10px)',
+          backdropFilter: 'blur(16px)',
           borderBottom: '1px solid',
           borderColor: 'divider',
+          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)',
         }}
       >
         <Container maxWidth="lg">

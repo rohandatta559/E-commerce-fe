@@ -10,17 +10,33 @@ const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1976d2',
-      contrastText: '#fff',
+      main: '#7c3aed',
+      contrastText: '#ffffff',
     },
     secondary: {
-      main: '#dc004e',
-      contrastText: '#fff',
+      main: '#ec4899',
+      contrastText: '#ffffff',
     },
-    // background: {
-    //   default: '#f5f5f5',
-    //   paper: '#ffffff',
-    // },
+    info: {
+      main: '#06b6d4',
+      contrastText: '#ffffff',
+    },
+    success: {
+      main: '#14b8a6',
+      contrastText: '#ffffff',
+    },
+    warning: {
+      main: '#f59e0b',
+      contrastText: '#ffffff',
+    },
+    error: {
+      main: '#ef4444',
+      contrastText: '#ffffff',
+    },
+    background: {
+      default: '#eef2ff',
+      paper: '#ffffff',
+    },
   },
   typography: {
     fontFamily: [
@@ -37,21 +53,39 @@ const theme = createTheme({
     ].join(','),
     button: {
       textTransform: 'none',
-      fontWeight: 500,
+      fontWeight: 700,
     },
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          background: 'radial-gradient(circle at top left, rgba(124, 58, 237, 0.14), transparent 30%), radial-gradient(circle at bottom right, rgba(236, 72, 153, 0.12), transparent 25%), #eef2ff',
+          minHeight: '100vh',
+          color: '#1f2937',
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 14,
+          fontWeight: 700,
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 20,
+          boxShadow: '0 20px 60px rgba(15, 23, 42, 0.08)',
         },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 20,
           overflow: 'hidden',
         },
       },

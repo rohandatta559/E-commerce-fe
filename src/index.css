@@ -1,4 +1,10 @@
 body {
   margin: 0;
   min-width: 320px;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: linear-gradient(180deg, #eef2ff 0%, #f8fbff 52%, #ffffff 100%);
+}
+
+#root {
+  min-height: 100vh;
 }
