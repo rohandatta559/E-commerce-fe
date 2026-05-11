@@ -3,6 +3,7 @@ import { Box, Typography, Container, Button, Table, TableBody, TableCell, TableC
 import { Delete as DeleteIcon, Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from './contexts/CartContext';
+import { formatINR } from './utils/currency';
 
 const CartPage = () => {
   const { cart, removeFromCart, updateQuantity, cartTotal, cartCount, clearCart } = useCart();
@@ -87,7 +88,7 @@ const CartPage = () => {
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 600 }}>${item.price.toFixed(2)}</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600 }}>{formatINR(item.price)}</TableCell>
                     <TableCell align="center">
                       <Box display="flex" alignItems="center" justifyContent="center">
                         <IconButton
@@ -116,7 +117,7 @@ const CartPage = () => {
                       </Box>
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>
-                      ${(item.price * item.quantity).toFixed(2)}
+                      {formatINR(item.price * item.quantity)}
                     </TableCell>
                     <TableCell align="right">
                       <IconButton
@@ -185,7 +186,7 @@ const CartPage = () => {
 
             <Box display="flex" justifyContent="space-between" mb={2}>
               <Typography sx={{ fontWeight: 600 }}>Subtotal ({cartCount} {cartCount === 1 ? 'item' : 'items'})</Typography>
-              <Typography sx={{ fontWeight: 600 }}>${cartTotal.toFixed(2)}</Typography>
+              <Typography sx={{ fontWeight: 600 }}>{formatINR(cartTotal)}</Typography>
             </Box>
 
             <Box display="flex" justifyContent="space-between" mb={3}>
@@ -197,7 +198,7 @@ const CartPage = () => {
 
             <Box display="flex" justifyContent="space-between" mb={4}>
               <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>Total</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>${cartTotal.toFixed(2)}</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>{formatINR(cartTotal)}</Typography>
             </Box>
 
             <Button

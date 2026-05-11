@@ -3,6 +3,7 @@ import { Alert, Box, Button, Container, Grid, Paper, Stack, TextField, Typograph
 import { useNavigate } from 'react-router-dom';
 import { useCart } from './contexts/CartContext';
 import { createOrder } from './services/api';
+import { formatINR } from './utils/currency';
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -207,14 +208,14 @@ const CheckoutPage = () => {
             </Box>
             <Box display="flex" justifyContent="space-between" mb={2}>
               <Typography sx={{ fontWeight: 600 }}>Subtotal</Typography>
-              <Typography sx={{ fontWeight: 600 }}>${cartTotal.toFixed(2)}</Typography>
+              <Typography sx={{ fontWeight: 600 }}>{formatINR(cartTotal)}</Typography>
             </Box>
             <Box display="flex" justifyContent="space-between" mb={3}>
               <Typography sx={{ fontWeight: 600 }}>Shipping</Typography>
               <Typography sx={{ fontWeight: 600, color: 'success.main' }}>Free</Typography>
             </Box>
             <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', mb: 3 }}>
-              Total: ${cartTotal.toFixed(2)}
+              Total: {formatINR(cartTotal)}
             </Typography>
             {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
             <Button

@@ -20,6 +20,7 @@ import {
 import { AddShoppingCart, Favorite, FavoriteBorder, LocalShipping } from '@mui/icons-material';
 import { useCart } from './contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
+import { formatINR } from './utils/currency';
 
 const ProductCard = ({ product }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -177,10 +178,10 @@ const ProductCard = ({ product }) => {
 
           <Stack direction="row" spacing={1} alignItems="baseline" sx={{ mb: 1, mt: 'auto' }}>
             <Typography variant="h6" color="primary" fontWeight={800}>
-              ${price.toFixed(2)}
+              {formatINR(price)}
             </Typography>
             <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.disabled' }}>
-              ${oldPrice.toFixed(2)}
+              {formatINR(oldPrice)}
             </Typography>
           </Stack>
 

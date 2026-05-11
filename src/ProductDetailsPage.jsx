@@ -18,6 +18,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { getProductById, getProducts } from './services/api';
 import { useCart } from './contexts/CartContext';
 import ProductCard from './ProductCard';
+import { formatINR } from './utils/currency';
 
 const ProductDetailsPage = () => {
   const { id } = useParams();
@@ -99,7 +100,7 @@ const ProductDetailsPage = () => {
                 <Rating value={product.rating || 4} precision={0.5} readOnly />
                 <Typography color="text.secondary">({product.numReviews || 0} reviews)</Typography>
               </Box>
-              <Typography variant="h5" color="primary" sx={{ fontWeight: 700 }}>${Number(product.price || 0).toFixed(2)}</Typography>
+              <Typography variant="h5" color="primary" sx={{ fontWeight: 700 }}>{formatINR(product.price)}</Typography>
               <Typography color="text.secondary">{product.description || 'No description available.'}</Typography>
               <Divider sx={{ my: 1 }} />
               <Typography><strong>Stock:</strong> {product.stock > 0 ? `${product.stock} available` : 'Out of stock'}</Typography>
@@ -155,4 +156,3 @@ const ProductDetailsPage = () => {
 };
 
 export default ProductDetailsPage;
-
