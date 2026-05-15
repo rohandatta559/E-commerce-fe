@@ -113,7 +113,8 @@ export const getProducts = async (params = {}) => {
       },
       credentials: 'include'
     });
-    return await handleResponse(response);
+    const data = await handleResponse(response);
+    return data;
   } catch (error) {
     console.error('Get products error:', error);
     throw error;
@@ -192,73 +193,32 @@ export const removeFromWishlist = async (productId) => {
 
 // Cart API
 export const getCart = async () => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/cart`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getAuthToken()}`
-      },
-      credentials: 'include'
-    });
-    return await handleResponse(response);
-  } catch (error) {
-    console.error('Get cart error:', error);
-    throw error;
-  }
+  const saved = localStorage.getItem('cart');
+  return saved ? JSON.parse(saved) : [];
 };
 
 export const addToCart = async (productId, quantity = 1) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/cart`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getAuthToken()}`
-      },
-      credentials: 'include',
-      body: JSON.stringify({ productId, quantity })
-    });
-    return await handleResponse(response);
-  } catch (error) {
-    console.error('Add to cart error:', error);
-    throw error;
-  }
+  const cart = await getCart();
+  const existing = cart.find((item) => item._id === productId);
+  const next = existing
+    ? cart.map((item) => (item._id === productId ? { ...item, quantity: item.quantity + quantity } : item))
+    : [...cart, { _id: productId, quantity }];
+  localStorage.setItem('cart', JSON.stringify(next));
+  return next;
 };
 
 export const updateCartItem = async (productId, quantity) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/cart/${productId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getAuthToken()}`
-      },
-      credentials: 'include',
-      body: JSON.stringify({ quantity })
-    });
-    return await handleResponse(response);
-  } catch (error) {
-    console.error('Update cart item error:', error);
-    throw error;
-  }
+  const cart = await getCart();
+  const next = cart.map((item) => (item._id === productId ? { ...item, quantity } : item));
+  localStorage.setItem('cart', JSON.stringify(next));
+  return next;
 };
 
 export const removeFromCart = async (productId) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/cart/${productId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getAuthToken()}`
-      },
-      credentials: 'include'
-    });
-    return await handleResponse(response);
-  } catch (error) {
-    console.error('Remove from cart error:', error);
-    throw error;
-  }
+  const cart = await getCart();
+  const next = cart.filter((item) => item._id !== productId);
+  localStorage.setItem('cart', JSON.stringify(next));
+  return next;
 };
 
 // Order API
@@ -290,11 +250,25 @@ export const getOrders = async () => {
       },
       credentials: 'include'
     });
-    return await handleResponse(response);
+    const data = await handleResponse(response);
+    return Array.isArray(data) ? data : (data.orders || []);
   } catch (error) {
     console.error('Get orders error:', error);
     throw error;
   }
+};
+
+export const getOrdersWithQuery = async (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  const response = await fetch(`${API_BASE_URL}/orders?${query}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include'
+  });
+  return await handleResponse(response);
 };
 
 export const getOrderById = async (orderId) => {
@@ -317,14 +291,18 @@ export const getOrderById = async (orderId) => {
 // Search API
 export const searchProducts = async (query, filters = {}) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(query)}`, {
-      method: 'POST',
+    const merged = { q: query, ...filters };
+    const sanitized = Object.fromEntries(
+      Object.entries(merged).filter(([, value]) => value !== undefined && value !== null && value !== '')
+    );
+    const queryString = new URLSearchParams(sanitized).toString();
+    const response = await fetch(`${API_BASE_URL}/search?${queryString}`, {
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${getAuthToken()}`
       },
-      credentials: 'include',
-      body: JSON.stringify(filters)
+      credentials: 'include'
     });
     return await handleResponse(response);
   } catch (error) {
@@ -368,4 +346,125 @@ export const changePassword = async (currentPassword, newPassword) => {
     console.error('Change password error:', error);
     throw error;
   }
+};
+
+export const submitProductReview = async (productId, payload) => {
+  const response = await fetch(`${API_BASE_URL}/products/${productId}/reviews`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  return await handleResponse(response);
+};
+
+export const validateCoupon = async (code, subtotal) => {
+  const response = await fetch(`${API_BASE_URL}/coupons/validate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include',
+    body: JSON.stringify({ code, subtotal })
+  });
+  return await handleResponse(response);
+};
+
+export const getAddresses = async () => {
+  const response = await fetch(`${API_BASE_URL}/auth/addresses`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include'
+  });
+  return await handleResponse(response);
+};
+
+export const addAddress = async (address) => {
+  const response = await fetch(`${API_BASE_URL}/auth/addresses`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include',
+    body: JSON.stringify(address)
+  });
+  return await handleResponse(response);
+};
+
+export const updateAddress = async (addressId, address) => {
+  const response = await fetch(`${API_BASE_URL}/auth/addresses/${addressId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include',
+    body: JSON.stringify(address)
+  });
+  return await handleResponse(response);
+};
+
+export const deleteAddress = async (addressId) => {
+  const response = await fetch(`${API_BASE_URL}/auth/addresses/${addressId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include'
+  });
+  return await handleResponse(response);
+};
+
+export const getAdminAnalytics = async () => {
+  const response = await fetch(`${API_BASE_URL}/admin/analytics`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include'
+  });
+  return await handleResponse(response);
+};
+
+export const getAdminUsers = async () => {
+  const response = await fetch(`${API_BASE_URL}/admin/users`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include'
+  });
+  return await handleResponse(response);
+};
+
+export const getAdminOrders = async () => {
+  const response = await fetch(`${API_BASE_URL}/admin/orders`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include'
+  });
+  return await handleResponse(response);
+};
+
+export const updateAdminOrderStatus = async (orderId, status) => {
+  const response = await fetch(`${API_BASE_URL}/admin/orders/${orderId}/status`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include',
+    body: JSON.stringify({ status })
+  });
+  return await handleResponse(response);
 };

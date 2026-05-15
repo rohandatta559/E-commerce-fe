@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Alert, Box, Button, Container, Grid, Paper, Stack, TextField, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from './contexts/CartContext';
-import { createOrder } from './services/api';
+import { addAddress, createOrder, getAddresses, validateCoupon } from './services/api';
 import { formatINR } from './utils/currency';
 
 const CheckoutPage = () => {
@@ -10,6 +10,9 @@ const CheckoutPage = () => {
   const { cart, cartCount, cartTotal, clearCart } = useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [couponInfo, setCouponInfo] = useState(null);
+  const [savedAddresses, setSavedAddresses] = useState([]);
   const [address, setAddress] = useState({
     fullName: '',
     phone: '',
@@ -30,6 +33,34 @@ const CheckoutPage = () => {
       address.postalCode.trim()
     );
   }, [address, cartCount]);
+
+  const cgst = useMemo(() => Number((cartTotal * 0.18).toFixed(2)), [cartTotal]);
+  const sgst = useMemo(() => Number((cartTotal * 0.18).toFixed(2)), [cartTotal]);
+  const totalWithTax = useMemo(() => Number((cartTotal + cgst + sgst - Number(couponInfo?.discountAmount || 0)).toFixed(2)), [cartTotal, cgst, sgst, couponInfo]);
+
+  React.useEffect(() => {
+    const loadAddresses = async () => {
+      try {
+        const data = await getAddresses();
+        const addresses = data.addresses || [];
+        setSavedAddresses(addresses);
+        const defaultAddress = addresses.find((item) => item.isDefault);
+        if (defaultAddress) {
+          setAddress({
+            fullName: defaultAddress.fullName || '',
+            phone: defaultAddress.phoneNumber || '',
+            line1: defaultAddress.line1 || '',
+            city: defaultAddress.city || '',
+            state: defaultAddress.state || '',
+            postalCode: defaultAddress.postalCode || '',
+          });
+        }
+      } catch {
+        setSavedAddresses([]);
+      }
+    };
+    loadAddresses();
+  }, []);
 
   const handleChange = (field) => (event) => {
     setAddress((prev) => ({ ...prev, [field]: event.target.value }));
@@ -58,13 +89,41 @@ const CheckoutPage = () => {
           fullName: address.fullName,
         },
         paymentMethod: 'COD',
+        couponCode: couponInfo?.code,
       });
+      try {
+        if (address.fullName && address.phone && address.line1 && address.city && address.state && address.postalCode) {
+          await addAddress({
+            label: 'Checkout Address',
+            fullName: address.fullName,
+            phoneNumber: address.phone,
+            line1: address.line1,
+            city: address.city,
+            state: address.state,
+            postalCode: address.postalCode,
+            country: 'India',
+            isDefault: savedAddresses.length === 0,
+          });
+        }
+      } catch {}
       clearCart();
       navigate('/orders');
     } catch (e) {
       setError(e.message || 'Could not place order. Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleApplyCoupon = async () => {
+    setError('');
+    if (!couponCode.trim()) return;
+    try {
+      const response = await validateCoupon(couponCode.trim(), cartTotal);
+      setCouponInfo(response.coupon);
+    } catch (e) {
+      setCouponInfo(null);
+      setError(e.message || 'Invalid coupon');
     }
   };
 
@@ -101,6 +160,11 @@ const CheckoutPage = () => {
               Shipping Address
             </Typography>
             <Stack spacing={3}>
+              {savedAddresses.length > 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  Saved addresses found: {savedAddresses.length} (default auto-filled)
+                </Typography>
+              )}
               <TextField
                 label="Full Name"
                 value={address.fullName}
@@ -210,12 +274,29 @@ const CheckoutPage = () => {
               <Typography sx={{ fontWeight: 600 }}>Subtotal</Typography>
               <Typography sx={{ fontWeight: 600 }}>{formatINR(cartTotal)}</Typography>
             </Box>
+            <Box display="flex" justifyContent="space-between" mb={2}>
+              <Typography sx={{ fontWeight: 600 }}>CGST (18%)</Typography>
+              <Typography sx={{ fontWeight: 600 }}>{formatINR(cgst)}</Typography>
+            </Box>
+            <Box display="flex" justifyContent="space-between" mb={2}>
+              <Typography sx={{ fontWeight: 600 }}>SGST (18%)</Typography>
+              <Typography sx={{ fontWeight: 600 }}>{formatINR(sgst)}</Typography>
+            </Box>
             <Box display="flex" justifyContent="space-between" mb={3}>
               <Typography sx={{ fontWeight: 600 }}>Shipping</Typography>
               <Typography sx={{ fontWeight: 600, color: 'success.main' }}>Free</Typography>
             </Box>
+            <Box display="flex" gap={1} mb={2}>
+              <TextField size="small" fullWidth label="Coupon code" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} />
+              <Button variant="outlined" onClick={handleApplyCoupon}>Apply</Button>
+            </Box>
+            {couponInfo && (
+              <Typography variant="body2" color="success.main" sx={{ mb: 2 }}>
+                Coupon {couponInfo.code} applied: -{formatINR(couponInfo.discountAmount)}
+              </Typography>
+            )}
             <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', mb: 3 }}>
-              Total: {formatINR(cartTotal)}
+              Total: {formatINR(totalWithTax)}
             </Typography>
             {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
             <Button

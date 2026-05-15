@@ -27,8 +27,7 @@ const OrdersPage = () => {
       setLoading(true);
       setError('');
       try {
-        const data = await getOrders();
-        const normalized = Array.isArray(data) ? data : (data.orders || []);
+        const normalized = await getOrders();
         setOrders(normalized);
 
         // Try to fetch stats from backend, fallback to client-side calculation
@@ -81,7 +80,7 @@ const OrdersPage = () => {
     // Apply filter
     if (filterStatus !== 'all') {
       result = result.filter(order => {
-        const status = order.status || (order.isDelivered ? 'Delivered' : order.isPaid ? 'Paid' : 'Pending');
+        const status = order.status || 'placed';
         return status.toLowerCase().includes(filterStatus.toLowerCase());
       });
     }
@@ -93,14 +92,14 @@ const OrdersPage = () => {
       result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
     } else if (sortBy === 'amount-desc') {
       result.sort((a, b) => {
-        const amountA = a.totalAmount ?? a.total ?? 0;
-        const amountB = b.totalAmount ?? b.total ?? 0;
+        const amountA = a.totalPrice ?? a.totalAmount ?? a.total ?? 0;
+        const amountB = b.totalPrice ?? b.totalAmount ?? b.total ?? 0;
         return amountB - amountA;
       });
     } else if (sortBy === 'amount-asc') {
       result.sort((a, b) => {
-        const amountA = a.totalAmount ?? a.total ?? 0;
-        const amountB = b.totalAmount ?? b.total ?? 0;
+        const amountA = a.totalPrice ?? a.totalAmount ?? a.total ?? 0;
+        const amountB = b.totalPrice ?? b.totalAmount ?? b.total ?? 0;
         return amountA - amountB;
       });
     }
@@ -374,8 +373,9 @@ const OrdersPage = () => {
         {filteredAndSortedOrders.map((order) => {
           const id = order._id || order.id;
           const total = order.totalPrice ?? order.totalAmount ?? order.total ?? 0;
-          const status = order.status || 'Placed';
+          const status = order.isDelivered ? 'Delivered' : order.isPaid ? 'Paid' : 'Pending';
           const createdAt = order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A';
+          const deliveredAt = order.deliveredAt ? new Date(order.deliveredAt).toLocaleString() : null;
           const items = order.items || [];
           return (
             <Paper
@@ -401,12 +401,17 @@ const OrdersPage = () => {
                 </Typography>
               </Box>
               <Typography variant="body1" sx={{ mb: 2, color: 'text.secondary' }}>
-                Status: <span style={{ color: status === 'Delivered' ? '#14b8a6' : status === 'Shipped' ? '#f59e0b' : '#7c3aed', fontWeight: 600 }}>{status}</span>
+                Status: <span style={{ color: status === 'Delivered' ? '#14b8a6' : status === 'Paid' ? '#f59e0b' : '#7c3aed', fontWeight: 600 }}>{status}</span>
               </Typography>
+              {deliveredAt && (
+                <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                  Delivered on: {deliveredAt}
+                </Typography>
+              )}
               <Divider sx={{ my: 2, borderColor: 'rgba(124,58,237,0.2)' }} />
               {items.map((item, index) => (
                 <Typography key={`${id}-${index}`} variant="body1" color="text.secondary" sx={{ mb: 1 }}>
-                  {item.name || item.productName || 'Product'} x {item.quantity || 1}
+                  {item?.product?.name || item.name || item.productName || 'Product'} x {item.quantity || 1}
                 </Typography>
               ))}
               <Typography sx={{ mt: 2, fontSize: '1.1rem' }} fontWeight={700} color="primary.main">

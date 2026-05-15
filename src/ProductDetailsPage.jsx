@@ -10,12 +10,13 @@ import {
   Grid,
   Paper,
   Rating,
+  TextField,
   Stack,
   Typography,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getProductById, getProducts } from './services/api';
+import { getProductById, getProducts, submitProductReview } from './services/api';
 import { useCart } from './contexts/CartContext';
 import ProductCard from './ProductCard';
 import { formatINR } from './utils/currency';
@@ -28,6 +29,9 @@ const ProductDetailsPage = () => {
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewError, setReviewError] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -47,15 +51,7 @@ const ProductDetailsPage = () => {
     load();
   }, [id]);
 
-  const reviews = useMemo(() => {
-    const count = Math.min(4, product?.numReviews || 3);
-    return Array.from({ length: count }).map((_, i) => ({
-      id: i + 1,
-      name: ['Aarav', 'Ishita', 'Rohan', 'Priya'][i] || 'Customer',
-      rating: Math.max(3.5, (product?.rating || 4) - i * 0.2),
-      comment: ['Excellent quality and value.', 'Exactly as described.', 'Fast delivery and nice packaging.', 'Would buy again.'][i] || 'Good product.',
-    }));
-  }, [product]);
+  const reviews = useMemo(() => product?.reviews || [], [product]);
 
   const similarProducts = useMemo(() => {
     if (!product) return [];
@@ -75,6 +71,18 @@ const ProductDetailsPage = () => {
   if (error || !product) {
     return <Alert severity="error">{error || 'Product not found'}</Alert>;
   }
+
+  const handleSubmitReview = async () => {
+    setReviewError('');
+    try {
+      await submitProductReview(product._id, { rating: reviewRating, comment: reviewComment });
+      const updated = await getProductById(product._id);
+      setProduct(updated);
+      setReviewComment('');
+    } catch (e) {
+      setReviewError(e.message || 'Failed to submit review');
+    }
+  };
 
   return (
     <Container maxWidth="lg" sx={{ py: 3 }}>
@@ -121,9 +129,23 @@ const ProductDetailsPage = () => {
 
       <Paper sx={{ p: { xs: 2, md: 3 }, borderRadius: 3, mt: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Reviews</Typography>
+        <Stack spacing={1.5} sx={{ mb: 3 }}>
+          <Rating value={reviewRating} onChange={(_, value) => setReviewRating(value || 1)} />
+          <TextField
+            label="Write your review"
+            multiline
+            minRows={3}
+            value={reviewComment}
+            onChange={(e) => setReviewComment(e.target.value)}
+          />
+          {reviewError && <Alert severity="error">{reviewError}</Alert>}
+          <Button variant="contained" onClick={handleSubmitReview} disabled={!reviewComment.trim()}>
+            Submit Review
+          </Button>
+        </Stack>
         <Stack spacing={2}>
           {reviews.map((review) => (
-            <Box key={review.id}>
+            <Box key={review._id}>
               <Typography sx={{ fontWeight: 600 }}>{review.name}</Typography>
               <Rating value={review.rating} precision={0.5} readOnly size="small" />
               <Typography variant="body2" color="text.secondary">{review.comment}</Typography>

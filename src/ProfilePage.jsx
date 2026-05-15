@@ -12,9 +12,12 @@ import {
   Stack,
   TextField,
   Snackbar,
+  List,
+  ListItem,
+  ListItemText,
 } from '@mui/material';
 import { Person as PersonIcon, Email as EmailIcon, Phone as PhoneIcon } from '@mui/icons-material';
-import { fetchProfile as fetchProfileApi, updateProfile as updateProfileApi } from './services/api';
+import { addAddress, changePassword, fetchProfile as fetchProfileApi, getAddresses, updateProfile as updateProfileApi } from './services/api';
 
 const ProfilePage = () => {
   const [user, setUser] = useState(null);
@@ -28,6 +31,8 @@ const ProfilePage = () => {
     email: '',
     phoneNumber: '',
   });
+  const [addresses, setAddresses] = useState([]);
+  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '' });
 
   useEffect(() => {
     let isMounted = true;
@@ -46,6 +51,8 @@ const ProfilePage = () => {
           email: profile.email || '',
           phoneNumber: profile.phoneNumber || profile.phone || '',
         });
+        const addressData = await getAddresses();
+        setAddresses(addressData.addresses || []);
       } catch (e) {
         if (!isMounted) return;
         setError(e.message || 'Failed to load profile');
@@ -101,6 +108,35 @@ const ProfilePage = () => {
       email: user?.email || '',
       phoneNumber: user?.phoneNumber || user?.phone || '',
     });
+  };
+
+  const handlePasswordChange = async () => {
+    try {
+      await changePassword(passwordData.currentPassword, passwordData.newPassword);
+      setSuccessMessage('Password changed successfully');
+      setPasswordData({ currentPassword: '', newPassword: '' });
+    } catch (e) {
+      setError(e.message || 'Failed to change password');
+    }
+  };
+
+  const saveCurrentAddress = async () => {
+    try {
+      await addAddress({
+        label: 'Profile',
+        fullName: formData.fullName,
+        phoneNumber: formData.phoneNumber,
+        line1: 'Address line',
+        city: 'City',
+        state: 'State',
+        postalCode: '000000',
+      });
+      const addressData = await getAddresses();
+      setAddresses(addressData.addresses || []);
+      setSuccessMessage('Address saved');
+    } catch (e) {
+      setError(e.message || 'Failed to save address');
+    }
   };
 
   return (
@@ -272,7 +308,27 @@ const ProfilePage = () => {
                       Edit Profile
                     </Button>
                   )}
+                  <Button variant="outlined" onClick={saveCurrentAddress}>Save as Address</Button>
                 </Box>
+
+                <Divider sx={{ my: 3, borderColor: 'rgba(124,58,237,0.2)' }} />
+                <Typography variant="h6" sx={{ mb: 1 }}>Change Password</Typography>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                  <TextField label="Current Password" type="password" value={passwordData.currentPassword} onChange={(e) => setPasswordData((prev) => ({ ...prev, currentPassword: e.target.value }))} />
+                  <TextField label="New Password" type="password" value={passwordData.newPassword} onChange={(e) => setPasswordData((prev) => ({ ...prev, newPassword: e.target.value }))} />
+                  <Button variant="contained" onClick={handlePasswordChange}>Update</Button>
+                </Stack>
+
+                <Divider sx={{ my: 3, borderColor: 'rgba(124,58,237,0.2)' }} />
+                <Typography variant="h6" sx={{ mb: 1 }}>Saved Addresses</Typography>
+                <List dense>
+                  {addresses.map((address) => (
+                    <ListItem key={address._id}>
+                      <ListItemText primary={`${address.label || 'Address'} - ${address.line1 || ''}`} secondary={`${address.city || ''}, ${address.state || ''} ${address.postalCode || ''}`} />
+                    </ListItem>
+                  ))}
+                  {addresses.length === 0 && <Typography variant="body2" color="text.secondary">No saved addresses yet.</Typography>}
+                </List>
               </Box>
             </Stack>
           </Paper>

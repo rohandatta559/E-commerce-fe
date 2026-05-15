@@ -91,10 +91,13 @@ const Login = ({ onLoginSuccess }) => {
         setError('');
 
         try {
-            const { token, user } = await loginUser(formData.email, formData.password);
+            const response = await loginUser(formData.email, formData.password);
+            const token = response.token;
+            const user = response.user || response;
             setAuthToken(token);
             const displayName = user?.fullName || user?.name || 'User';
             localStorage.setItem('userName', displayName);
+            localStorage.setItem('userRole', user?.role || 'user');
             if (onLoginSuccess) {
                 onLoginSuccess(user);
                 const from = location.state?.from || '/products';

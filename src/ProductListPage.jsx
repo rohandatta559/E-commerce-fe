@@ -1,11 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Grid,
   Typography,
   Box,
   Alert,
   TextField,
-  InputAdornment,
   Container,
   Button,
   Chip,
@@ -16,8 +14,8 @@ import {
   MenuItem,
   Stack,
   Skeleton,
+  Pagination,
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
 import ProductCard from './ProductCard';
 import API from './axiosInstance';
 import ShoppingCart from '@mui/icons-material/ShoppingCart';
@@ -47,7 +45,10 @@ const ProductList = () => {
   const [sortBy, setSortBy] = useState('relevance');
   const [priceRange, setPriceRange] = useState([0, 1000]);
   const [fullName, setFullName] = useState('User');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
   const { cartCount } = useCart();
+  const [hasInitializedPriceRange, setHasInitializedPriceRange] = useState(false);
 
   useEffect(() => {
     const savedName = localStorage.getItem('userName');
@@ -58,8 +59,21 @@ const ProductList = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const response = await API.get('/products');
-        setProducts(Array.isArray(response.data) ? response.data : []);
+        const response = await API.get('/products', {
+          params: {
+            page,
+            limit: 1000,
+            category: selectedCategory !== 'All' ? selectedCategory : undefined,
+            inStock: inStockOnly ? 'true' : undefined,
+          },
+        });
+        const payload = response.data || {};
+        const productsList = Array.isArray(payload) ? payload : (payload.products || []);
+        setProducts(productsList);
+        setPagination(payload.pagination || {
+          total: productsList.length,
+          totalPages: 1,
+        });
         setError(null);
       } catch (err) {
         console.error('Error fetching products:', err);
@@ -68,9 +82,8 @@ const ProductList = () => {
         setLoading(false);
       }
     };
-
     fetchProducts();
-  }, []);
+  }, [selectedCategory, inStockOnly, page]);
 
   const enrichedProducts = useMemo(() => {
     return products.map((product, index) => {
@@ -104,38 +117,34 @@ const ProductList = () => {
   }, [enrichedProducts]);
 
   useEffect(() => {
-    setPriceRange(priceLimits);
-  }, [priceLimits]);
+    if (!hasInitializedPriceRange) {
+      setPriceRange(priceLimits);
+      setHasInitializedPriceRange(true);
+    }
+  }, [priceLimits, hasInitializedPriceRange]);
 
   const filteredProducts = useMemo(() => {
     const [minPrice, maxPrice] = priceRange;
-
-    const base = enrichedProducts.filter((product) => {
+    const q = searchTerm.trim().toLowerCase();
+    const filtered = enrichedProducts.filter((product) => {
       const name = (product.name || '').toLowerCase();
       const description = (product.description || '').toLowerCase();
-      const search = searchTerm.trim().toLowerCase();
+      const brand = (product.brand || '').toLowerCase();
       const price = Number(product.price) || 0;
 
-      const matchesSearch = !search || name.includes(search) || description.includes(search);
-      const matchesCategory = selectedCategory === 'All' || product.displayCategory === selectedCategory;
+      const matchesSearch = !q || name.includes(q) || description.includes(q) || brand.includes(q);
       const matchesPrice = price >= minPrice && price <= maxPrice;
       const matchesRating = product.displayRating >= selectedRating;
-      const matchesStock = !inStockOnly || product.stock > 0;
-
-      return matchesSearch && matchesCategory && matchesPrice && matchesRating && matchesStock;
+      return matchesSearch && matchesPrice && matchesRating;
     });
 
-    const sorted = [...base];
-    sorted.sort((a, b) => {
-      if (sortBy === 'price-low-high') return (Number(a.price) || 0) - (Number(b.price) || 0);
-      if (sortBy === 'price-high-low') return (Number(b.price) || 0) - (Number(a.price) || 0);
-      if (sortBy === 'rating-high-low') return b.displayRating - a.displayRating;
-      if (sortBy === 'newest') return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
-      return 0;
-    });
-
+    const sorted = [...filtered];
+    if (sortBy === 'price-low-high') sorted.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+    if (sortBy === 'price-high-low') sorted.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+    if (sortBy === 'rating-high-low') sorted.sort((a, b) => (b.displayRating || 0) - (a.displayRating || 0));
+    if (sortBy === 'newest') sorted.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     return sorted;
-  }, [enrichedProducts, searchTerm, selectedCategory, priceRange, selectedRating, inStockOnly, sortBy]);
+  }, [enrichedProducts, selectedRating, priceRange, searchTerm, sortBy]);
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -144,6 +153,7 @@ const ProductList = () => {
     setInStockOnly(false);
     setSortBy('relevance');
     setPriceRange(priceLimits);
+    setPage(1);
   };
 
   if (error) {
@@ -189,8 +199,107 @@ const ProductList = () => {
         </Button>
       </Box>
 
+      <Paper
+        sx={{
+          p: 2,
+          mb: 3,
+          borderRadius: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+          background: 'rgba(255,255,255,0.75)',
+          backdropFilter: 'blur(8px)',
+        }}
+      >
+        <Stack spacing={2}>
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 2,
+              gridTemplateColumns: { xs: '1fr', sm: '1.4fr 1fr 1fr' },
+              alignItems: 'center',
+            }}
+          >
+            <TextField
+              size="small"
+              label="Search products"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by name, brand, or description"
+            />
+            <TextField
+              select
+              size="small"
+              label="Category"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              {categories.map((category) => (
+                <MenuItem key={category} value={category}>
+                  {category}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              size="small"
+              label="Sort by"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <MenuItem value="relevance">Relevance</MenuItem>
+              <MenuItem value="newest">Newest</MenuItem>
+              <MenuItem value="price-low-high">Price: Low to High</MenuItem>
+              <MenuItem value="price-high-low">Price: High to Low</MenuItem>
+              <MenuItem value="rating-high-low">Top Rated</MenuItem>
+            </TextField>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 2,
+              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr auto' },
+              alignItems: 'center',
+            }}
+          >
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                Price Range: {priceRange[0]} - {priceRange[1]}
+              </Typography>
+              <Slider
+                value={priceRange}
+                min={priceLimits[0]}
+                max={priceLimits[1]}
+                onChange={(_, value) => setPriceRange(value)}
+                valueLabelDisplay="auto"
+              />
+            </Box>
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                Minimum Rating: {selectedRating.toFixed(1)}+
+              </Typography>
+              <Slider
+                value={selectedRating}
+                min={0}
+                max={5}
+                step={0.5}
+                onChange={(_, value) => setSelectedRating(value)}
+                valueLabelDisplay="auto"
+              />
+            </Box>
+            <Stack direction="row" spacing={1} alignItems="center" justifyContent={{ xs: 'flex-start', md: 'flex-end' }}>
+              <FormControlLabel
+                control={<Switch checked={inStockOnly} onChange={(e) => setInStockOnly(e.target.checked)} />}
+                label="In stock"
+              />
+              <Button variant="outlined" onClick={clearFilters}>Clear</Button>
+            </Stack>
+          </Box>
+        </Stack>
+      </Paper>
+
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Showing {filteredProducts.length} of {enrichedProducts.length} products
+        Showing {filteredProducts.length} of {pagination.total || filteredProducts.length} products
       </Typography>
 
       {loading ? (
@@ -240,6 +349,11 @@ const ProductList = () => {
               <ProductCard product={product} />
             </Box>
           ))}
+        </Box>
+      )}
+      {!loading && pagination.totalPages > 1 && (
+        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+          <Pagination count={pagination.totalPages} page={page} onChange={(_, value) => setPage(value)} color="primary" />
         </Box>
       )}
     </Box>

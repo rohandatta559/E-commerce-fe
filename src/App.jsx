@@ -12,17 +12,20 @@ import ProfilePage from './ProfilePage';
 import CheckoutPage from './CheckoutPage';
 import OrdersPage from './OrdersPage';
 import ProductDetailsPage from './ProductDetailsPage';
+import AdminPage from './AdminPage';
 
 function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
   const { cart } = useCart();
   const [isLoggedIn, setIsLoggedIn] = useState(!!getAuthToken());
+  const [role, setRole] = useState(localStorage.getItem('userRole') || 'user');
 
   const cartCount = cart.reduce((total, item) => total + (item.quantity || 1), 0);
 
   useEffect(() => {
     setIsLoggedIn(!!getAuthToken());
+    setRole(localStorage.getItem('userRole') || 'user');
   }, [location.pathname]);
 
   useEffect(() => {
@@ -39,11 +42,13 @@ function Navigation() {
 
   const handleAuthSuccess = () => {
     setIsLoggedIn(true);
+    setRole(localStorage.getItem('userRole') || 'user');
   };
 
   const handleLogout = () => {
     setAuthToken(null);
     localStorage.removeItem('userName');
+    localStorage.removeItem('userRole');
     setIsLoggedIn(false);
     navigate('/login');
   };
@@ -127,6 +132,11 @@ function Navigation() {
                   <Button color="inherit" onClick={handleLogout} sx={{ textTransform: 'none', fontWeight: 600 }}>
                     Logout
                   </Button>
+                  {role === 'admin' && (
+                    <Button color="inherit" component={RouterLink} to="/admin" sx={{ textTransform: 'none', fontWeight: 600 }}>
+                      Admin
+                    </Button>
+                  )}
                 </>
               )}
             </Box>
@@ -203,6 +213,14 @@ function Navigation() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path='/admin'
+            element={
+              <ProtectedRoute>
+                <AdminPage />
               </ProtectedRoute>
             }
           />
