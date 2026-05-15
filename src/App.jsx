@@ -86,8 +86,19 @@ function Navigation() {
                 to={isLoggedIn ? '/products' : '/login'}
                 sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}
               >
-                <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
-                  E-Commerce Store
+                <Typography
+                  variant="h5"
+                  component="div"
+                  sx={{
+                    fontWeight: 900,
+                    letterSpacing: 0,
+                    background: 'linear-gradient(135deg, #7c3aed 0%, #ec4899 55%, #f59e0b 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    lineHeight: 1.1,
+                  }}
+                >
+                  Shoply
                 </Typography>
               </Box>
             </Box>
