@@ -19,9 +19,9 @@ import {
 import ProductCard from './ProductCard';
 import API from './axiosInstance';
 import ShoppingCart from '@mui/icons-material/ShoppingCart';
-import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import { Link as RouterLink } from 'react-router-dom';
 import { useCart } from './contexts/CartContext';
+import { addToWishlist, getWishlist, removeFromWishlist } from './services/api';
 
 const FALLBACK_CATEGORIES = ['Electronics', 'Fashion', 'Home', 'Beauty', 'Sports', 'Books'];
 
@@ -49,10 +49,28 @@ const ProductList = () => {
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
   const { cartCount } = useCart();
   const [hasInitializedPriceRange, setHasInitializedPriceRange] = useState(false);
+  const [wishlistProductIds, setWishlistProductIds] = useState(new Set());
 
   useEffect(() => {
     const savedName = localStorage.getItem('userName');
     if (savedName && savedName.trim()) setFullName(savedName.trim());
+  }, []);
+
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      try {
+        const data = await getWishlist();
+        const ids = new Set(
+          (data?.wishlist || [])
+            .map((item) => item?.product?._id)
+            .filter(Boolean)
+        );
+        setWishlistProductIds(ids);
+      } catch {
+        setWishlistProductIds(new Set());
+      }
+    };
+    fetchWishlist();
   }, []);
 
   useEffect(() => {
@@ -84,6 +102,21 @@ const ProductList = () => {
     };
     fetchProducts();
   }, [selectedCategory, inStockOnly, page]);
+
+  const handleWishlistToggle = async (productId, shouldAdd) => {
+    if (!productId) return;
+    if (shouldAdd) {
+      await addToWishlist(productId);
+      setWishlistProductIds((prev) => new Set([...prev, productId]));
+    } else {
+      await removeFromWishlist(productId);
+      setWishlistProductIds((prev) => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
+    }
+  };
 
   const enrichedProducts = useMemo(() => {
     return products.map((product, index) => {
@@ -346,7 +379,11 @@ const ProductList = () => {
         >
           {filteredProducts.map((product) => (
             <Box key={product._id} sx={{ display: 'flex' }}>
-              <ProductCard product={product} />
+              <ProductCard
+                product={product}
+                isWishlisted={wishlistProductIds.has(product._id)}
+                onWishlistToggle={handleWishlistToggle}
+              />
             </Box>
           ))}
         </Box>

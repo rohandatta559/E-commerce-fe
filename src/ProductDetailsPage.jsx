@@ -7,9 +7,13 @@ import {
   CircularProgress,
   Container,
   Divider,
+  FormControl,
   Grid,
+  InputLabel,
+  MenuItem,
   Paper,
   Rating,
+  Select,
   TextField,
   Stack,
   Typography,
@@ -32,6 +36,7 @@ const ProductDetailsPage = () => {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewError, setReviewError] = useState('');
+  const [selectedVariantId, setSelectedVariantId] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -52,6 +57,18 @@ const ProductDetailsPage = () => {
   }, [id]);
 
   const reviews = useMemo(() => product?.reviews || [], [product]);
+  const variants = useMemo(() => (Array.isArray(product?.variants) ? product.variants : []), [product]);
+  const selectedVariant = useMemo(
+    () => variants.find((variant) => String(variant._id) === String(selectedVariantId)) || null,
+    [variants, selectedVariantId]
+  );
+  const availableStock = useMemo(() => {
+    if (variants.length > 0) {
+      return variants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0);
+    }
+    return Number(product?.stock || 0);
+  }, [product, variants]);
+  const displayPrice = Number(selectedVariant?.price ?? product?.price ?? 0);
 
   const similarProducts = useMemo(() => {
     if (!product) return [];
@@ -59,6 +76,16 @@ const ProductDetailsPage = () => {
       .filter((p) => p._id !== product._id && p.category === product.category)
       .slice(0, 4);
   }, [allProducts, product]);
+
+  useEffect(() => {
+    if (!product) return;
+    if (variants.length === 0) {
+      setSelectedVariantId('');
+      return;
+    }
+    const firstAvailable = variants.find((variant) => Number(variant.stock) > 0) || variants[0];
+    setSelectedVariantId(String(firstAvailable?._id || ''));
+  }, [product, variants]);
 
   if (loading) {
     return (
@@ -108,16 +135,45 @@ const ProductDetailsPage = () => {
                 <Rating value={product.rating || 4} precision={0.5} readOnly />
                 <Typography color="text.secondary">({product.numReviews || 0} reviews)</Typography>
               </Box>
-              <Typography variant="h5" color="primary" sx={{ fontWeight: 700 }}>{formatINR(product.price)}</Typography>
+              <Typography variant="h5" color="primary" sx={{ fontWeight: 700 }}>{formatINR(displayPrice)}</Typography>
               <Typography color="text.secondary">{product.description || 'No description available.'}</Typography>
               <Divider sx={{ my: 1 }} />
-              <Typography><strong>Stock:</strong> {product.stock > 0 ? `${product.stock} available` : 'Out of stock'}</Typography>
+              {variants.length > 0 && (
+                <FormControl fullWidth size="small">
+                  <InputLabel id="variant-label">Choose Variant</InputLabel>
+                  <Select
+                    labelId="variant-label"
+                    label="Choose Variant"
+                    value={selectedVariantId}
+                    onChange={(event) => setSelectedVariantId(event.target.value)}
+                  >
+                    {variants.map((variant) => {
+                      const variantName =
+                        variant.label ||
+                        [variant.color, variant.size].filter(Boolean).join(' / ') ||
+                        variant.sku ||
+                        'Variant';
+                      return (
+                        <MenuItem key={variant._id} value={String(variant._id)} disabled={Number(variant.stock) <= 0}>
+                          {variantName} - {formatINR(Number(variant.price ?? product.price))} ({variant.stock} left)
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
+              )}
+              <Typography><strong>Stock:</strong> {availableStock > 0 ? `${availableStock} available` : 'Out of stock'}</Typography>
+              {selectedVariant && (
+                <Typography color="text.secondary" variant="body2">
+                  Selected: {selectedVariant.label || [selectedVariant.color, selectedVariant.size].filter(Boolean).join(' / ') || 'Variant'}
+                </Typography>
+              )}
               <Typography><strong>Brand:</strong> {product.brand || 'N/A'}</Typography>
               <Button
                 variant="contained"
                 size="large"
-                disabled={product.stock <= 0}
-                onClick={() => addToCart(product)}
+                disabled={variants.length > 0 ? Number(selectedVariant?.stock || 0) <= 0 : Number(product.stock) <= 0}
+                onClick={() => addToCart(product, 1, selectedVariant)}
                 sx={{ mt: 1, width: 'fit-content' }}
               >
                 Add to Cart

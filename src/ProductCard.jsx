@@ -22,9 +22,9 @@ import { useCart } from './contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 import { formatINR } from './utils/currency';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, isWishlisted = false, onWishlistToggle }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(Boolean(isWishlisted));
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const theme = useTheme();
@@ -32,15 +32,33 @@ const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
-  const price = Number(product.price) || 0;
+  React.useEffect(() => {
+    setIsFavorite(Boolean(isWishlisted));
+  }, [isWishlisted]);
+
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  const variantStock = variants.reduce((sum, variant) => sum + Number(variant.stock || 0), 0);
+  const hasVariants = variants.length > 0;
+  const minVariantPrice = hasVariants
+    ? variants.reduce((min, variant) => {
+        const nextPrice = Number(variant.price ?? product.price ?? 0);
+        return Number.isFinite(min) ? Math.min(min, nextPrice) : nextPrice;
+      }, Number.POSITIVE_INFINITY)
+    : Number(product.price);
+  const price = Number.isFinite(minVariantPrice) ? minVariantPrice : Number(product.price) || 0;
   const oldPrice = useMemo(() => Number((price * 1.18).toFixed(2)), [price]);
-  const isOutOfStock = Number(product.stock) <= 0;
-  const isLowStock = Number(product.stock) > 0 && Number(product.stock) <= 5;
+  const effectiveStock = hasVariants ? variantStock : Number(product.stock);
+  const isOutOfStock = effectiveStock <= 0;
+  const isLowStock = effectiveStock > 0 && effectiveStock <= 5;
   const hasValidImage = typeof product.image === 'string' && product.image.trim().length > 8;
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
     if (isOutOfStock) return;
+    if (hasVariants) {
+      navigate(`/products/${product._id}`);
+      return;
+    }
     addToCart(product);
     setSnackbarOpen(true);
   };
@@ -52,7 +70,13 @@ const ProductCard = ({ product }) => {
 
   const toggleFavorite = (e) => {
     e.stopPropagation();
-    setIsFavorite((prev) => !prev);
+    const nextValue = !isFavorite;
+    setIsFavorite(nextValue);
+    if (onWishlistToggle) {
+      onWishlistToggle(product._id, nextValue).catch(() => {
+        setIsFavorite(!nextValue);
+      });
+    }
   };
 
   return (
@@ -111,14 +135,14 @@ const ProductCard = ({ product }) => {
             </Box>
           )}
           <Stack direction="row" spacing={1} sx={{ position: 'absolute', top: 10, left: 10 }}>
-            <Chip size="small" color="primary" label={product.displayCategory || 'General'} />
-            {isOutOfStock ? (
-              <Chip size="small" color="error" label="Out of stock" />
-            ) : isLowStock ? (
-              <Chip size="small" color="warning" label={`Only ${product.stock} left`} />
-            ) : (
-              <Chip size="small" color="success" label="In stock" />
-            )}
+              <Chip size="small" color="primary" label={product.displayCategory || 'General'} />
+              {isOutOfStock ? (
+                <Chip size="small" color="error" label="Out of stock" />
+              ) : isLowStock ? (
+                <Chip size="small" color="warning" label={`Only ${effectiveStock} left`} />
+              ) : (
+                <Chip size="small" color="success" label="In stock" />
+              )}
           </Stack>
           <Tooltip title={isFavorite ? 'Remove from wishlist' : 'Add to wishlist'}>
             <IconButton
@@ -178,7 +202,7 @@ const ProductCard = ({ product }) => {
 
           <Stack direction="row" spacing={1} alignItems="baseline" sx={{ mb: 1, mt: 'auto' }}>
             <Typography variant="h6" color="primary" fontWeight={800}>
-              {formatINR(price)}
+              {hasVariants ? `From ${formatINR(price)}` : formatINR(price)}
             </Typography>
             <Typography variant="body2" sx={{ textDecoration: 'line-through', color: 'text.disabled' }}>
               {formatINR(oldPrice)}
@@ -202,7 +226,7 @@ const ProductCard = ({ product }) => {
             disabled={isOutOfStock}
             sx={{ textTransform: 'none', fontWeight: 700, py: 1.05 }}
           >
-            {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+            {isOutOfStock ? 'Out of Stock' : hasVariants ? 'Select Options' : 'Add to Cart'}
           </Button>
         </CardActions>
       </Card>

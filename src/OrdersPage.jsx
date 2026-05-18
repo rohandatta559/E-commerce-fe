@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Alert, Box, CircularProgress, Container, Divider, Paper, Stack, Typography, Grid, Card, CardContent, Select, MenuItem, FormControl, InputLabel, Button, IconButton, Tooltip, Snackbar } from '@mui/material';
+import { Alert, Box, CircularProgress, Container, Divider, Paper, Stack, Typography, Grid, Card, CardContent, Select, MenuItem, FormControl, InputLabel, IconButton, Tooltip, Snackbar, Chip } from '@mui/material';
 import { API_BASE_URL, getOrders } from './services/api';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
@@ -21,6 +21,24 @@ const OrdersPage = () => {
     avgOrderValue: 0,
     deliveredOrders: 0,
   });
+
+  const normalizeStatus = (order) => {
+    const rawStatus = String(order?.status || '').trim().toLowerCase();
+    if (rawStatus) return rawStatus;
+    if (order?.isDelivered) return 'delivered';
+    if (order?.isPaid) return 'paid';
+    return 'placed';
+  };
+
+  const getDisplayStatus = (order) => {
+    const status = normalizeStatus(order);
+    if (status === 'delivered') return 'Delivered';
+    if (status === 'paid') return 'Paid';
+    if (status === 'packed') return 'Packed';
+    if (status === 'shipped') return 'Shipped';
+    if (status === 'cancelled') return 'Cancelled';
+    return 'Placed';
+  };
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -54,7 +72,7 @@ const OrdersPage = () => {
               const amount = order.totalPrice ?? order.totalAmount ?? order.total ?? 0;
               return sum + Number(amount);
             }, 0);
-            const deliveredCount = normalized.filter(order => order.status === 'Delivered' || order.isDelivered).length;
+            const deliveredCount = normalized.filter(order => normalizeStatus(order) === 'delivered').length;
             
             setStats({
               totalOrders: normalized.length,
@@ -80,8 +98,11 @@ const OrdersPage = () => {
     // Apply filter
     if (filterStatus !== 'all') {
       result = result.filter(order => {
-        const status = order.status || 'placed';
-        return status.toLowerCase().includes(filterStatus.toLowerCase());
+        const status = normalizeStatus(order);
+        if (filterStatus === 'pending') {
+          return ['placed', 'packed'].includes(status);
+        }
+        return status === filterStatus.toLowerCase();
       });
     }
 
@@ -174,98 +195,70 @@ const OrdersPage = () => {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Paper
-        sx={{
-          p: 4,
-          background: 'linear-gradient(135deg, rgba(124,58,237,0.9), rgba(236,72,153,0.9))',
-          color: 'common.white',
-          borderRadius: 4,
-          mb: 4,
-        }}
-      >
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
           Your Orders
         </Typography>
-        <Typography variant="body1" sx={{ opacity: 0.92 }}>
-          Track your purchases and order history
+        <Typography variant="body2" color="text.secondary">
+          Track purchases, invoices, and delivery updates.
         </Typography>
-      </Paper>
+      </Box>
 
       {/* Statistics Dashboard */}
       {!loading && !error && orders.length > 0 && (
         <Grid container spacing={2} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{
-              borderRadius: 3,
-              background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
-              color: 'white',
-              boxShadow: '0 10px 30px rgba(124,58,237,0.2)',
-            }}>
+            <Card variant="outlined">
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Orders</Typography>
+                    <Typography variant="body2" color="text.secondary">Total Orders</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 800, mt: 1 }}>{stats.totalOrders}</Typography>
                   </Box>
-                  <ShoppingBagIcon sx={{ fontSize: 45, opacity: 0.3 }} />
+                  <ShoppingBagIcon sx={{ fontSize: 32, color: 'text.disabled' }} />
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{
-              borderRadius: 3,
-              background: 'linear-gradient(135deg, #ec4899, #f472b6)',
-              color: 'white',
-              boxShadow: '0 10px 30px rgba(236,72,153,0.2)',
-            }}>
+            <Card variant="outlined">
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Total Spent</Typography>
+                    <Typography variant="body2" color="text.secondary">Total Spent</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 800, mt: 1 }}>{formatINR(stats.totalSpent)}</Typography>
                   </Box>
-                  <TrendingUpIcon sx={{ fontSize: 45, opacity: 0.3 }} />
+                  <TrendingUpIcon sx={{ fontSize: 32, color: 'text.disabled' }} />
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{
-              borderRadius: 3,
-              background: 'linear-gradient(135deg, #06b6d4, #22d3ee)',
-              color: 'white',
-              boxShadow: '0 10px 30px rgba(6,182,212,0.2)',
-            }}>
+            <Card variant="outlined">
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Avg Order Value</Typography>
+                    <Typography variant="body2" color="text.secondary">Avg Order Value</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 800, mt: 1 }}>{formatINR(stats.avgOrderValue)}</Typography>
                   </Box>
-                  <TrendingUpIcon sx={{ fontSize: 45, opacity: 0.3 }} />
+                  <TrendingUpIcon sx={{ fontSize: 32, color: 'text.disabled' }} />
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{
-              borderRadius: 3,
-              background: 'linear-gradient(135deg, #10b981, #34d399)',
-              color: 'white',
-              boxShadow: '0 10px 30px rgba(16,185,129,0.2)',
-            }}>
+            <Card variant="outlined">
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
-                    <Typography variant="body2" sx={{ opacity: 0.9 }}>Delivered</Typography>
+                    <Typography variant="body2" color="text.secondary">Delivered</Typography>
                     <Typography variant="h4" sx={{ fontWeight: 800, mt: 1 }}>{stats.deliveredOrders}</Typography>
                   </Box>
-                  <LocalShippingIcon sx={{ fontSize: 45, opacity: 0.3 }} />
+                  <LocalShippingIcon sx={{ fontSize: 32, color: 'text.disabled' }} />
                 </Box>
               </CardContent>
             </Card>
@@ -373,9 +366,11 @@ const OrdersPage = () => {
         {filteredAndSortedOrders.map((order) => {
           const id = order._id || order.id;
           const total = order.totalPrice ?? order.totalAmount ?? order.total ?? 0;
-          const status = order.isDelivered ? 'Delivered' : order.isPaid ? 'Paid' : 'Pending';
+          const status = getDisplayStatus(order);
           const createdAt = order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A';
-          const deliveredAt = order.deliveredAt ? new Date(order.deliveredAt).toLocaleString() : null;
+          const deliveredAt = normalizeStatus(order) === 'delivered' && order.deliveredAt
+            ? new Date(order.deliveredAt).toLocaleString()
+            : null;
           const items = order.items || [];
           return (
             <Paper
@@ -400,9 +395,12 @@ const OrdersPage = () => {
                   {createdAt}
                 </Typography>
               </Box>
-              <Typography variant="body1" sx={{ mb: 2, color: 'text.secondary' }}>
-                Status: <span style={{ color: status === 'Delivered' ? '#14b8a6' : status === 'Paid' ? '#f59e0b' : '#7c3aed', fontWeight: 600 }}>{status}</span>
-              </Typography>
+              <Chip
+                size="small"
+                label={status}
+                color={status === 'Delivered' ? 'success' : status === 'Paid' ? 'warning' : status === 'Cancelled' ? 'error' : 'default'}
+                sx={{ mb: 1 }}
+              />
               {deliveredAt && (
                 <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
                   Delivered on: {deliveredAt}

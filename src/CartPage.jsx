@@ -74,7 +74,7 @@ const CartPage = () => {
               </TableHead>
               <TableBody>
                 {cart.map((item) => (
-                  <TableRow key={item._id} sx={{ '&:hover': { bgcolor: 'rgba(124,58,237,0.04)' } }}>
+                  <TableRow key={item.lineId || item._id} sx={{ '&:hover': { bgcolor: 'rgba(124,58,237,0.04)' } }}>
                     <TableCell>
                       <Box display="flex" alignItems="center">
                         <Box
@@ -86,6 +86,11 @@ const CartPage = () => {
                         <Typography variant="body1" sx={{ fontWeight: 600 }}>
                           {item.name}
                         </Typography>
+                        {item.selectedVariant && (
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                            {item.selectedVariant.label || [item.selectedVariant.color, item.selectedVariant.size].filter(Boolean).join(' / ')}
+                          </Typography>
+                        )}
                       </Box>
                     </TableCell>
                     <TableCell align="center" sx={{ fontWeight: 600 }}>{formatINR(item.price)}</TableCell>
@@ -93,7 +98,7 @@ const CartPage = () => {
                       <Box display="flex" alignItems="center" justifyContent="center">
                         <IconButton
                           size="small"
-                          onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.lineId || item._id, item.quantity - 1)}
                           sx={{
                             bgcolor: 'rgba(124,58,237,0.1)',
                             '&:hover': { bgcolor: 'rgba(124,58,237,0.2)' },
@@ -106,7 +111,7 @@ const CartPage = () => {
                         </Typography>
                         <IconButton
                           size="small"
-                          onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.lineId || item._id, item.quantity + 1)}
                           sx={{
                             bgcolor: 'rgba(124,58,237,0.1)',
                             '&:hover': { bgcolor: 'rgba(124,58,237,0.2)' },
@@ -121,7 +126,7 @@ const CartPage = () => {
                     </TableCell>
                     <TableCell align="right">
                       <IconButton
-                        onClick={() => removeFromCart(item._id)}
+                        onClick={() => removeFromCart(item.lineId || item._id)}
                         color="error"
                         sx={{
                           bgcolor: 'rgba(239,68,68,0.1)',

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 
 const CartContext = createContext();
+const buildLineId = (productId, variantId) => `${productId}:${variantId || 'base'}`;
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState(() => {
@@ -16,33 +17,59 @@ export const CartProvider = ({ children }) => {
     }
   }, [cart]);
 
-  const addToCart = (product, quantity = 1) => {
+  const addToCart = (product, quantity = 1, selectedVariant = null) => {
+    const variantId = selectedVariant?._id || null;
+    const lineId = buildLineId(product._id, variantId);
+    const unitPrice = Number(selectedVariant?.price ?? product.price ?? 0);
+    const unitImage = selectedVariant?.image || product.image;
+
     setCart(prevCart => {
-      const existingItem = prevCart.find(item => item._id === product._id);
+      const existingItem = prevCart.find(item => item.lineId === lineId);
       
       if (existingItem) {
         return prevCart.map(item =>
-          item._id === product._id
+          item.lineId === lineId
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       } 
-      return [...prevCart, { ...product, quantity }];
+      return [
+        ...prevCart,
+        {
+          ...product,
+          lineId,
+          variantId,
+          selectedVariant: selectedVariant
+            ? {
+                _id: selectedVariant._id,
+                label: selectedVariant.label,
+                sku: selectedVariant.sku,
+                size: selectedVariant.size,
+                color: selectedVariant.color,
+                price: selectedVariant.price,
+                image: selectedVariant.image,
+              }
+            : null,
+          image: unitImage,
+          price: unitPrice,
+          quantity
+        }
+      ];
     });
   };
 
-  const removeFromCart = (productId) => {
-    setCart(prevCart => prevCart.filter(item => item._id !== productId));
+  const removeFromCart = (lineId) => {
+    setCart(prevCart => prevCart.filter(item => item.lineId !== lineId));
   };
 
-  const updateQuantity = (productId, newQuantity) => {
+  const updateQuantity = (lineId, newQuantity) => {
     if (newQuantity < 1) {
-      removeFromCart(productId);
+      removeFromCart(lineId);
       return;
     }
     setCart(prevCart =>
       prevCart.map(item =>
-        item._id === productId ? { ...item, quantity: newQuantity } : item
+        item.lineId === lineId ? { ...item, quantity: newQuantity } : item
       )
     );
   };

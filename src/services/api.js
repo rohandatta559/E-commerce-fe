@@ -468,3 +468,53 @@ export const updateAdminOrderStatus = async (orderId, status) => {
   });
   return await handleResponse(response);
 };
+
+export const getAdminProducts = async (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  const response = await fetch(`${API_BASE_URL}/admin/products${query ? `?${query}` : ''}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include'
+  });
+  return await handleResponse(response);
+};
+
+export const createAdminProduct = async (payload) => {
+  const response = await fetch(`${API_BASE_URL}/admin/products`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  return await handleResponse(response);
+};
+
+export const updateAdminProduct = async (productId, payload) => {
+  const response = await fetch(`${API_BASE_URL}/admin/products/${productId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  return await handleResponse(response);
+};
+
+export const deleteAdminProduct = async (productId) => {
+  const response = await fetch(`${API_BASE_URL}/admin/products/${productId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include',
+  });
+  return await handleResponse(response);
+};

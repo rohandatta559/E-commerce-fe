@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Link as RouterLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Container, Box, Button, Badge } from '@mui/material';
-import { ShoppingCart, Login as LoginIcon, Person } from '@mui/icons-material';
+import { ShoppingCart, Login as LoginIcon, Person, FavoriteBorder } from '@mui/icons-material';
 import { CartProvider, useCart } from './contexts/CartContext';
 import ProductList from './ProductListPage';
 import Login from './Login';
@@ -13,6 +13,7 @@ import CheckoutPage from './CheckoutPage';
 import OrdersPage from './OrdersPage';
 import ProductDetailsPage from './ProductDetailsPage';
 import AdminPage from './AdminPage';
+import WishlistPage from './WishlistPage';
 
 function Navigation() {
   const location = useLocation();
@@ -133,6 +134,15 @@ function Navigation() {
                   </Button>
                   <Button
                     color="inherit"
+                    startIcon={<FavoriteBorder />}
+                    component={RouterLink}
+                    to="/wishlist"
+                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                  >
+                    Wishlist
+                  </Button>
+                  <Button
+                    color="inherit"
                     startIcon={<Person />}
                     component={RouterLink}
                     to="/profile"
@@ -224,6 +234,14 @@ function Navigation() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path='/wishlist'
+            element={
+              <ProtectedRoute>
+                <WishlistPage />
               </ProtectedRoute>
             }
           />

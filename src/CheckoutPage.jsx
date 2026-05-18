@@ -77,6 +77,7 @@ const CheckoutPage = () => {
           product: item._id,
           quantity: item.quantity,
           price: item.price,
+          variantId: item.variantId || undefined,
         })),
         phoneNumber: address.phone,
         shippingAddress: {
