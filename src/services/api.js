@@ -482,6 +482,32 @@ export const updateAdminShipmentDetails = async (orderId, payload) => {
   return await handleResponse(response);
 };
 
+export const requestOrderReturn = async (orderId, payload) => {
+  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/return-request`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  return await handleResponse(response);
+};
+
+export const updateAdminReturnRequest = async (orderId, payload) => {
+  const response = await fetch(`${API_BASE_URL}/orders/${orderId}/return-request`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  return await handleResponse(response);
+};
+
 export const getAdminProducts = async (params = {}) => {
   const query = new URLSearchParams(params).toString();
   const response = await fetch(`${API_BASE_URL}/admin/products${query ? `?${query}` : ''}`, {

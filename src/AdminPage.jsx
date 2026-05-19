@@ -25,10 +25,12 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import { createAdminProduct, deleteAdminProduct, getAdminAnalytics, getAdminOrders, getAdminProducts, getAdminUsers, updateAdminOrderStatus, updateAdminProduct } from './services/api';
+import { createAdminProduct, deleteAdminProduct, getAdminAnalytics, getAdminOrders, getAdminProducts, getAdminUsers, updateAdminOrderStatus, updateAdminProduct, updateAdminShipmentDetails, updateAdminReturnRequest } from './services/api';
 import { formatINR } from './utils/currency';
 
 const STATUS_OPTIONS = ['placed', 'paid', 'packed', 'shipped', 'delivered', 'cancelled'];
+const SHIPMENT_STATUS_OPTIONS = ['placed', 'paid', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'exception'];
+const RETURN_STATUS_OPTIONS = ['approved', 'rejected', 'picked_up', 'refunded', 'closed'];
 
 const AdminPage = () => {
   const [analytics, setAnalytics] = useState(null);
@@ -39,6 +41,7 @@ const AdminPage = () => {
   const [editorOpen, setEditorOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [shipmentDrafts, setShipmentDrafts] = useState({});
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -70,6 +73,27 @@ const AdminPage = () => {
 
   const changeStatus = async (orderId, status) => {
     await updateAdminOrderStatus(orderId, status);
+    await load();
+  };
+
+  const updateShipmentDraft = (orderId, key, value) => {
+    setShipmentDrafts((prev) => ({
+      ...prev,
+      [orderId]: {
+        ...(prev[orderId] || {}),
+        [key]: value,
+      },
+    }));
+  };
+
+  const saveShipment = async (orderId) => {
+    const payload = shipmentDrafts[orderId] || {};
+    await updateAdminShipmentDetails(orderId, payload);
+    await load();
+  };
+
+  const updateReturnStatus = async (orderId, status) => {
+    await updateAdminReturnRequest(orderId, { status, decisionNote: `Return ${status} by admin` });
     await load();
   };
 
@@ -213,23 +237,88 @@ const AdminPage = () => {
                     <Typography variant="caption" color="text.secondary">
                       {order.user?.email || 'No user'} • {formatINR(order.totalPrice || 0)}
                     </Typography>
+                    <Typography variant="caption" display="block" color="text.secondary">
+                      Shipment: {order.shipment?.status || 'placed'} {order.shipment?.trackingId ? `• ${order.shipment.trackingId}` : ''}
+                    </Typography>
+                    {order.returnRequest?.status && order.returnRequest.status !== 'none' && (
+                      <Typography variant="caption" display="block" color="warning.main">
+                        Return: {order.returnRequest.status}
+                      </Typography>
+                    )}
                   </Box>
-                  <FormControl size="small" sx={{ minWidth: 150 }}>
-                    <InputLabel>Status</InputLabel>
-                    <Select
-                      value={(order.status || 'placed').toLowerCase()}
-                      label="Status"
-                      onChange={(e) => changeStatus(order._id, e.target.value)}
-                    >
-                      {STATUS_OPTIONS.map((status) => (
-                        <MenuItem key={status} value={status}>{status}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <FormControl size="small" sx={{ minWidth: 130 }}>
+                      <InputLabel>Status</InputLabel>
+                      <Select
+                        value={(order.status || 'placed').toLowerCase()}
+                        label="Status"
+                        onChange={(e) => changeStatus(order._id, e.target.value)}
+                      >
+                        {STATUS_OPTIONS.map((status) => (
+                          <MenuItem key={status} value={status}>{status}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl size="small" sx={{ minWidth: 160 }}>
+                      <InputLabel>Shipment</InputLabel>
+                      <Select
+                        value={shipmentDrafts[order._id]?.shipmentStatus ?? order.shipment?.status ?? 'placed'}
+                        label="Shipment"
+                        onChange={(e) => updateShipmentDraft(order._id, 'shipmentStatus', e.target.value)}
+                      >
+                        {SHIPMENT_STATUS_OPTIONS.map((status) => (
+                          <MenuItem key={status} value={status}>{status}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <TextField
+                      size="small"
+                      label="Courier"
+                      value={shipmentDrafts[order._id]?.courier ?? order.shipment?.courier ?? ''}
+                      onChange={(e) => updateShipmentDraft(order._id, 'courier', e.target.value)}
+                    />
+                    <TextField
+                      size="small"
+                      label="Tracking ID"
+                      value={shipmentDrafts[order._id]?.trackingId ?? order.shipment?.trackingId ?? ''}
+                      onChange={(e) => updateShipmentDraft(order._id, 'trackingId', e.target.value)}
+                    />
+                    <Button size="small" variant="outlined" onClick={() => saveShipment(order._id)}>Save Shipment</Button>
+                  </Stack>
                 </Box>
               ))}
               {orders.length === 0 && <Typography color="text.secondary">No orders found</Typography>}
             </Stack>
+            {orders.map((order) => {
+              const webhookEvents = (order.shipment?.timeline || []).filter((event) => event.source === 'webhook');
+              if (!webhookEvents.length) return null;
+              return (
+                <Paper key={`${order._id}-webhook`} variant="outlined" sx={{ p: 1.5, mt: 1 }}>
+                  <Typography variant="subtitle2">Webhook Event Log • #{order._id.slice(-8)}</Typography>
+                  {webhookEvents.slice(-5).reverse().map((event, idx) => (
+                    <Typography key={`${order._id}-event-${idx}`} variant="caption" display="block" color="text.secondary">
+                      {new Date(event.timestamp).toLocaleString()} • {event.status} {event.location ? `• ${event.location}` : ''}
+                    </Typography>
+                  ))}
+                </Paper>
+              );
+            })}
+            {orders.map((order) => (
+              order.returnRequest?.status && order.returnRequest.status !== 'none' ? (
+                <Box key={`${order._id}-return-actions`} sx={{ mt: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Return Request for #{order._id.slice(-8)} • {order.returnRequest.reasonCode}
+                  </Typography>
+                  <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
+                    {RETURN_STATUS_OPTIONS.map((status) => (
+                      <Button key={status} size="small" variant="outlined" onClick={() => updateReturnStatus(order._id, status)}>
+                        {status}
+                      </Button>
+                    ))}
+                  </Stack>
+                </Box>
+              ) : null
+            ))}
           </Paper>
         </Grid>
       </Grid>

@@ -14,6 +14,7 @@ import OrdersPage from './OrdersPage';
 import ProductDetailsPage from './ProductDetailsPage';
 import AdminPage from './AdminPage';
 import WishlistPage from './WishlistPage';
+import TrackOrderPage from './TrackOrderPage';
 
 function Navigation() {
   const location = useLocation();
@@ -228,6 +229,14 @@ function Navigation() {
               <OrdersPage />
             </ProtectedRoute>
           }
+          />
+          <Route
+            path='/track/:orderId'
+            element={
+              <ProtectedRoute>
+                <TrackOrderPage />
+              </ProtectedRoute>
+            }
           />
           <Route
             path='/profile'

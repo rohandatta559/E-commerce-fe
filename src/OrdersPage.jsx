@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Alert, Box, CircularProgress, Container, Divider, Paper, Stack, Typography, Grid, Card, CardContent, Select, MenuItem, FormControl, InputLabel, IconButton, Tooltip, Snackbar, Chip } from '@mui/material';
-import { API_BASE_URL, getOrders } from './services/api';
+import { Alert, Box, CircularProgress, Container, Divider, Paper, Stack, Typography, Grid, Card, CardContent, Select, MenuItem, FormControl, InputLabel, IconButton, Tooltip, Snackbar, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { API_BASE_URL, getOrders, requestOrderReturn } from './services/api';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import DownloadIcon from '@mui/icons-material/Download';
 import EmailIcon from '@mui/icons-material/Email';
 import { formatINR } from './utils/currency';
+import { Link as RouterLink } from 'react-router-dom';
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
@@ -15,6 +16,8 @@ const OrdersPage = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('date-desc');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [returnDialog, setReturnDialog] = useState({ open: false, orderId: '' });
+  const [returnForm, setReturnForm] = useState({ reasonCode: 'damaged', reasonNote: '', evidenceUrls: '' });
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalSpent: 0,
@@ -192,6 +195,27 @@ const OrdersPage = () => {
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
+  };
+
+  const submitReturnRequest = async () => {
+    try {
+      const payload = {
+        reasonCode: returnForm.reasonCode,
+        reasonNote: returnForm.reasonNote,
+        evidenceUrls: returnForm.evidenceUrls
+          .split(',')
+          .map((x) => x.trim())
+          .filter(Boolean),
+      };
+      await requestOrderReturn(returnDialog.orderId, payload);
+      setSnackbar({ open: true, message: 'Return request submitted', severity: 'success' });
+      setReturnDialog({ open: false, orderId: '' });
+      setReturnForm({ reasonCode: 'damaged', reasonNote: '', evidenceUrls: '' });
+      const refreshed = await getOrders();
+      setOrders(refreshed);
+    } catch (error) {
+      setSnackbar({ open: true, message: error.message || 'Failed to submit return request', severity: 'error' });
+    }
   };
 
   return (
@@ -443,6 +467,27 @@ const OrdersPage = () => {
 
               {/* Action Buttons */}
               <Box sx={{ mt: 3, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                <Button
+                  size="small"
+                  component={RouterLink}
+                  to={`/track/${id}`}
+                  variant="outlined"
+                >
+                  Track
+                </Button>
+                {normalizeStatus(order) === 'delivered' && (!order.returnRequest || order.returnRequest.status === 'none' || order.returnRequest.status === 'rejected' || order.returnRequest.status === 'closed') && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="warning"
+                    onClick={() => setReturnDialog({ open: true, orderId: id })}
+                  >
+                    Request Return
+                  </Button>
+                )}
+                {order.returnRequest?.status && order.returnRequest.status !== 'none' && (
+                  <Chip size="small" label={`Return: ${String(order.returnRequest.status).replaceAll('_', ' ')}`} color="warning" />
+                )}
                 <Tooltip title="Download Invoice">
                   <IconButton
                     onClick={() => handleDownloadInvoice(id)}
@@ -489,6 +534,42 @@ const OrdersPage = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <Dialog open={returnDialog.open} onClose={() => setReturnDialog({ open: false, orderId: '' })} fullWidth maxWidth="sm">
+        <DialogTitle>Request Return</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <FormControl fullWidth>
+              <InputLabel>Reason Code</InputLabel>
+              <Select
+                value={returnForm.reasonCode}
+                label="Reason Code"
+                onChange={(e) => setReturnForm((prev) => ({ ...prev, reasonCode: e.target.value }))}
+              >
+                {['damaged', 'wrong_item', 'not_as_described', 'missing_parts', 'size_issue', 'quality_issue', 'other'].map((code) => (
+                  <MenuItem key={code} value={code}>{code.replaceAll('_', ' ')}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              label="Reason Note"
+              multiline
+              minRows={3}
+              value={returnForm.reasonNote}
+              onChange={(e) => setReturnForm((prev) => ({ ...prev, reasonNote: e.target.value }))}
+            />
+            <TextField
+              label="Evidence URLs (comma separated)"
+              value={returnForm.evidenceUrls}
+              onChange={(e) => setReturnForm((prev) => ({ ...prev, evidenceUrls: e.target.value }))}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setReturnDialog({ open: false, orderId: '' })}>Cancel</Button>
+          <Button variant="contained" onClick={submitReturnRequest}>Submit</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
