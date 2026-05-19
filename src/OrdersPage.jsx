@@ -372,6 +372,8 @@ const OrdersPage = () => {
             ? new Date(order.deliveredAt).toLocaleString()
             : null;
           const items = order.items || [];
+          const shipment = order.shipment || {};
+          const shipmentTimeline = Array.isArray(shipment.timeline) ? [...shipment.timeline].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)) : [];
           return (
             <Paper
               key={id}
@@ -415,6 +417,29 @@ const OrdersPage = () => {
               <Typography sx={{ mt: 2, fontSize: '1.1rem' }} fontWeight={700} color="primary.main">
                 Total: {formatINR(total)}
               </Typography>
+
+              {(shipment.trackingId || shipment.courier || shipment.trackingUrl || shipmentTimeline.length > 0) && (
+                <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: 'grey.50', border: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>Shipment</Typography>
+                  {shipment.courier && <Typography variant="body2" color="text.secondary">Courier: {shipment.courier}</Typography>}
+                  {shipment.trackingId && <Typography variant="body2" color="text.secondary">Tracking ID: {shipment.trackingId}</Typography>}
+                  {shipment.trackingUrl && (
+                    <Typography variant="body2">
+                      <a href={shipment.trackingUrl} target="_blank" rel="noreferrer">Track shipment</a>
+                    </Typography>
+                  )}
+                  {shipmentTimeline.length > 0 && (
+                    <Box sx={{ mt: 1 }}>
+                      {shipmentTimeline.slice(0, 4).map((event, eventIndex) => (
+                        <Typography key={`${id}-event-${eventIndex}`} variant="caption" display="block" color="text.secondary">
+                          {new Date(event.timestamp).toLocaleString()} - {String(event.status || '').replaceAll('_', ' ')}
+                          {event.location ? ` (${event.location})` : ''}
+                        </Typography>
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              )}
 
               {/* Action Buttons */}
               <Box sx={{ mt: 3, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
