@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Link as RouterLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Container, Box, Button, Badge } from '@mui/material';
-import { ShoppingCart, Login as LoginIcon, Person, FavoriteBorder } from '@mui/icons-material';
+import { AppBar, Toolbar, Typography, Container, Box, Button, Badge, IconButton } from '@mui/material';
+import { ShoppingCart, Person, FavoriteBorder, Search } from '@mui/icons-material';
 import { CartProvider, useCart } from './contexts/CartContext';
 import ProductList from './ProductListPage';
 import Login from './Login';
@@ -15,6 +15,11 @@ import ProductDetailsPage from './ProductDetailsPage';
 import AdminPage from './AdminPage';
 import WishlistPage from './WishlistPage';
 import TrackOrderPage from './TrackOrderPage';
+import AboutUsPage from './AboutUsPage';
+import ContactUsPage from './ContactUsPage';
+
+// Routes where navbar should go dark/glass and container spacing removed
+const IMMERSIVE_ROUTES = ['/login', '/sign-up'];
 
 function Navigation() {
   const location = useLocation();
@@ -22,6 +27,8 @@ function Navigation() {
   const { cart } = useCart();
   const [isLoggedIn, setIsLoggedIn] = useState(!!getAuthToken());
   const [role, setRole] = useState(localStorage.getItem('userRole') || 'user');
+  const isAdminDashboard = role === 'admin' && location.pathname.startsWith('/admin');
+  const isImmersive = IMMERSIVE_ROUTES.includes(location.pathname);
 
   const cartCount = cart.reduce((total, item) => total + (item.quantity || 1), 0);
 
@@ -52,11 +59,19 @@ function Navigation() {
     localStorage.removeItem('userName');
     localStorage.removeItem('userRole');
     setIsLoggedIn(false);
-    navigate('/login');
+    navigate('/products');
   };
 
   const handleLoginClick = () => {
     navigate('/login', { state: { from: location.pathname } });
+  };
+
+  const navigateProtected = (path) => {
+    if (isLoggedIn) {
+      navigate(path);
+      return;
+    }
+    navigate('/login', { state: { from: path } });
   };
 
   const ProtectedRoute = ({ children }) => {
@@ -72,32 +87,92 @@ function Navigation() {
         position="sticky"
         elevation={0}
         sx={{
-          bgcolor: 'rgba(255,255,255,0.95)',
-          color: 'text.primary',
-          backdropFilter: 'blur(16px)',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)',
+          // On immersive routes (login/signup): dark glass navbar that blends with the page
+          bgcolor: isImmersive ? 'rgba(6, 9, 20, 0.85)' : '#ffffff',
+          color: isImmersive ? '#fff' : 'text.primary',
+          backdropFilter: isImmersive ? 'blur(16px)' : 'none',
+          WebkitBackdropFilter: isImmersive ? 'blur(16px)' : 'none',
+          borderBottom: isImmersive
+            ? '1px solid rgba(255,255,255,0.07)'
+            : '1px solid #e5e7eb',
+          boxShadow: isImmersive
+            ? '0 1px 0 rgba(255,255,255,0.04)'
+            : 'none',
+          // Sit above the Login's fixed overlay (z=1200) so it stays visible
+          zIndex: 1300,
+          transition: 'background 0.4s ease, border-color 0.4s ease',
         }}
       >
         <Container maxWidth="lg">
-          <Toolbar disableGutters sx={{ minHeight: 64 }}>
+          <Toolbar disableGutters sx={{ minHeight: { xs: 56, sm: 64 }, alignItems: 'center', gap: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {!isLoggedIn && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2.5 }, mr: { xs: 1, sm: 3 } }}>
+                  <Button
+                    color="inherit"
+                    component={RouterLink}
+                    to="/contact-us"
+                    sx={{
+                      textTransform: 'none',
+                      fontWeight: 500,
+                      color: isImmersive ? 'rgba(255,255,255,0.65)' : 'inherit',
+                      '&:hover': { color: isImmersive ? '#fff' : 'inherit' },
+                    }}
+                  >
+                    Contact Us
+                  </Button>
+                  <Button
+                    color="inherit"
+                    component={RouterLink}
+                    to="/about-us"
+                    sx={{
+                      textTransform: 'none',
+                      fontWeight: 500,
+                      color: isImmersive ? 'rgba(255,255,255,0.65)' : 'inherit',
+                      '&:hover': { color: isImmersive ? '#fff' : 'inherit' },
+                    }}
+                  >
+                    Our Story
+                  </Button>
+                  <Button
+                    color="inherit"
+                    component={RouterLink}
+                    to="/products"
+                    sx={{
+                      textTransform: 'none',
+                      fontWeight: 500,
+                      color: isImmersive ? 'rgba(255,255,255,0.65)' : 'inherit',
+                      '&:hover': { color: isImmersive ? '#fff' : 'inherit' },
+                    }}
+                  >
+                    New Arrivals
+                  </Button>
+                </Box>
+              )}
               <Box
                 component={RouterLink}
-                to={isLoggedIn ? '/products' : '/login'}
-                sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}
+                to="/products"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  position: { sm: 'absolute' },
+                  left: { sm: '50%' },
+                  transform: { sm: 'translateX(-50%)' },
+                }}
               >
                 <Typography
                   variant="h5"
                   component="div"
                   sx={{
-                    fontWeight: 900,
+                    fontWeight: 500,
                     letterSpacing: 0,
-                    background: 'linear-gradient(135deg, #7c3aed 0%, #ec4899 55%, #f59e0b 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
+                    // Gold logo pops on both light and dark navbars
+                    color: '#d4a73c',
                     lineHeight: 1.1,
+                    fontSize: { xs: '1.8rem', sm: '2rem' },
+                    fontFamily: 'Georgia, "Times New Roman", serif',
                   }}
                 >
                   Shoply
@@ -105,57 +180,90 @@ function Navigation() {
               </Box>
             </Box>
             <Box sx={{ flexGrow: 1 }} />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              {isLoggedIn && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1.5 }, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {isLoggedIn && !isAdminDashboard && (
                 <Button
                   color="inherit"
                   component={RouterLink}
                   to="/cart"
                   startIcon={<ShoppingCart />}
-                  sx={{ textTransform: 'none', fontWeight: 600 }}
+                  sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 } }}
                 >
-                  <Badge badgeContent={cartCount} color="primary">
-                    Cart
+                  <Badge badgeContent={cartCount} color="primary" sx={{ mr: { xs: 0, sm: 0.5 } }}>
+                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Cart</Box>
                   </Badge>
                 </Button>
               )}
               {!isLoggedIn ? (
-                <Button
-                  color="inherit"
-                  startIcon={<LoginIcon />}
-                  onClick={handleLoginClick}
-                  sx={{ display: { xs: 'none', sm: 'flex' }, textTransform: 'none', fontWeight: 600 }}
-                >
-                  Login
-                </Button>
+                <>
+                  <IconButton
+                    color="inherit"
+                    aria-label="search"
+                    sx={{ color: isImmersive ? 'rgba(255,255,255,0.6)' : 'inherit', '&:hover': { color: isImmersive ? '#fff' : 'inherit' } }}
+                  >
+                    <Search />
+                  </IconButton>
+                  <IconButton
+                    color="inherit"
+                    aria-label="login"
+                    onClick={handleLoginClick}
+                    sx={{ color: isImmersive ? 'rgba(255,255,255,0.6)' : 'inherit', '&:hover': { color: isImmersive ? '#fff' : 'inherit' } }}
+                  >
+                    <Person />
+                  </IconButton>
+                  <IconButton
+                    color="inherit"
+                    aria-label="wishlist"
+                    onClick={() => navigateProtected('/wishlist')}
+                    sx={{ color: isImmersive ? 'rgba(255,255,255,0.6)' : 'inherit', '&:hover': { color: isImmersive ? '#fff' : 'inherit' } }}
+                  >
+                    <Badge badgeContent={0} color="error">
+                      <FavoriteBorder />
+                    </Badge>
+                  </IconButton>
+                  <IconButton
+                    color="inherit"
+                    aria-label="cart"
+                    onClick={() => navigate('/cart')}
+                    sx={{ color: isImmersive ? 'rgba(255,255,255,0.6)' : 'inherit', '&:hover': { color: isImmersive ? '#fff' : 'inherit' } }}
+                  >
+                    <Badge badgeContent={cartCount} color="error">
+                      <ShoppingCart />
+                    </Badge>
+                  </IconButton>
+                </>
               ) : (
                 <>
-                  <Button color="inherit" component={RouterLink} to="/orders" sx={{ textTransform: 'none', fontWeight: 600 }}>
-                    Orders
-                  </Button>
-                  <Button
-                    color="inherit"
-                    startIcon={<FavoriteBorder />}
-                    component={RouterLink}
-                    to="/wishlist"
-                    sx={{ textTransform: 'none', fontWeight: 600 }}
-                  >
-                    Wishlist
-                  </Button>
-                  <Button
-                    color="inherit"
-                    startIcon={<Person />}
-                    component={RouterLink}
-                    to="/profile"
-                    sx={{ textTransform: 'none', fontWeight: 600 }}
-                  >
-                    Profile
-                  </Button>
-                  <Button color="inherit" onClick={handleLogout} sx={{ textTransform: 'none', fontWeight: 600 }}>
+                  {!isAdminDashboard && (
+                    <>
+                      <Button color="inherit" component={RouterLink} to="/orders" sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}>
+                        Orders
+                      </Button>
+                      <Button
+                        color="inherit"
+                        startIcon={<FavoriteBorder />}
+                        component={RouterLink}
+                        to="/wishlist"
+                        sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}
+                      >
+                        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Wishlist</Box>
+                      </Button>
+                      <Button
+                        color="inherit"
+                        startIcon={<Person />}
+                        component={RouterLink}
+                        to="/profile"
+                        sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}
+                      >
+                        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Profile</Box>
+                      </Button>
+                    </>
+                  )}
+                  <Button color="inherit" onClick={handleLogout} sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}>
                     Logout
                   </Button>
                   {role === 'admin' && (
-                    <Button color="inherit" component={RouterLink} to="/admin" sx={{ textTransform: 'none', fontWeight: 600 }}>
+                    <Button color="inherit" component={RouterLink} to="/admin" sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}>
                       Admin
                     </Button>
                   )}
@@ -166,69 +274,59 @@ function Navigation() {
         </Container>
       </AppBar>
 
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
+      {/*
+        On immersive routes (login/signup): remove Container padding/margin entirely.
+        The Login component uses position:fixed to cover the full viewport anyway,
+        so the Container here just needs to not add visual noise.
+      */}
+      <Container
+        maxWidth={isImmersive ? false : 'xl'}
+        disableGutters={isImmersive}
+        sx={{
+          mt: isImmersive ? 0 : 4,
+          mb: isImmersive ? 0 : 4,
+          flex: 1,
+          p: isImmersive ? '0 !important' : undefined,
+        }}
+      >
         <Routes>
           <Route
             path="/login"
             element={
               isLoggedIn ? (
-                <Navigate to="/products" replace />
+                <Navigate to={role === 'admin' ? '/admin' : '/products'} replace />
               ) : (
-                <Login
-                  onLoginSuccess={handleAuthSuccess}
-                />
+                <Login onLoginSuccess={handleAuthSuccess} />
               )
             }
           />
           <Route
             path="/"
             element={
-              <Navigate to="/login" replace />
+              <Navigate to={isLoggedIn && role === 'admin' ? '/admin' : '/products'} replace />
             }
           />
+          <Route path="/products" element={<ProductList />} />
+          <Route path="/products/:id" element={<ProductDetailsPage />} />
+          <Route path='/sign-up' element={<SignUp onSignUpSuccess={handleAuthSuccess} />} />
+          <Route path='/about-us' element={<AboutUsPage />} />
+          <Route path='/contact-us' element={<ContactUsPage />} />
+          <Route path='/cart' element={<CartPage />} />
           <Route
-            path="/products"
+            path='/checkout'
             element={
               <ProtectedRoute>
-                <ProductList />
+                <CheckoutPage />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/products/:id"
+            path='/orders'
             element={
               <ProtectedRoute>
-                <ProductDetailsPage />
+                <OrdersPage />
               </ProtectedRoute>
             }
-          />
-          <Route 
-          path='/sign-up'
-          element={<SignUp onSignUpSuccess={handleAuthSuccess} />}
-          />
-          <Route 
-          path='/cart'
-          element={
-            <ProtectedRoute>
-              <CartPage />
-            </ProtectedRoute>
-          }
-          />
-          <Route
-          path='/checkout'
-          element={
-            <ProtectedRoute>
-              <CheckoutPage />
-            </ProtectedRoute>
-          }
-          />
-          <Route
-          path='/orders'
-          element={
-            <ProtectedRoute>
-              <OrdersPage />
-            </ProtectedRoute>
-          }
           />
           <Route
             path='/track/:orderId'
@@ -265,15 +363,26 @@ function Navigation() {
         </Routes>
       </Container>
 
-      <Box component="footer" sx={{ py: 3, bgcolor: 'background.paper', mt: 'auto' }}>
-        <Container maxWidth="lg">
-          <Typography variant="body2" color="text.secondary" align="center">
-            {'Copyright '}
-            {new Date().getFullYear()}
-            {' E-Commerce Store. All rights reserved.'}
-          </Typography>
-        </Container>
-      </Box>
+      {/* Hide footer on immersive routes */}
+      {!isImmersive && (
+        <Box component="footer" sx={{ py: 3, bgcolor: 'background.paper', mt: 'auto' }}>
+          <Container maxWidth="lg">
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 1, flexWrap: 'wrap' }}>
+              <Button component={RouterLink} to="/about-us" sx={{ textTransform: 'none' }}>
+                About Us
+              </Button>
+              <Button component={RouterLink} to="/contact-us" sx={{ textTransform: 'none' }}>
+                Contact Us
+              </Button>
+            </Box>
+            <Typography variant="body2" color="text.secondary" align="center">
+              {'Copyright '}
+              {new Date().getFullYear()}
+              {' E-Commerce Store. All rights reserved.'}
+            </Typography>
+          </Container>
+        </Box>
+      )}
     </Box>
   );
 }

@@ -18,6 +18,7 @@ const OrdersPage = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [returnDialog, setReturnDialog] = useState({ open: false, orderId: '' });
   const [returnForm, setReturnForm] = useState({ reasonCode: 'damaged', reasonNote: '', evidenceUrls: '' });
+  const [lastSyncAt, setLastSyncAt] = useState(null);
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalSpent: 0,
@@ -43,13 +44,18 @@ const OrdersPage = () => {
     return 'Placed';
   };
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      setLoading(true);
+  const formatLabel = (value = '') =>
+    String(value).replaceAll('_', ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+
+  const fetchOrders = async ({ silent = false } = {}) => {
+      if (!silent) {
+        setLoading(true);
+      }
       setError('');
       try {
         const normalized = await getOrders();
         setOrders(normalized);
+        setLastSyncAt(new Date());
 
         // Try to fetch stats from backend, fallback to client-side calculation
         try {
@@ -88,10 +94,16 @@ const OrdersPage = () => {
       } catch (e) {
         setError(e.message || 'Failed to load orders.');
       } finally {
-        setLoading(false);
+        if (!silent) {
+          setLoading(false);
+        }
       }
     };
+
+  useEffect(() => {
     fetchOrders();
+    const interval = setInterval(() => fetchOrders({ silent: true }), 20000);
+    return () => clearInterval(interval);
   }, []);
 
   // Filter and sort orders
@@ -227,6 +239,11 @@ const OrdersPage = () => {
         <Typography variant="body2" color="text.secondary">
           Track purchases, invoices, and delivery updates.
         </Typography>
+        {lastSyncAt && (
+          <Typography variant="caption" color="text.secondary">
+            Live refresh every 20s. Last sync: {lastSyncAt.toLocaleTimeString()}
+          </Typography>
+        )}
       </Box>
 
       {/* Statistics Dashboard */}
@@ -398,6 +415,13 @@ const OrdersPage = () => {
           const items = order.items || [];
           const shipment = order.shipment || {};
           const shipmentTimeline = Array.isArray(shipment.timeline) ? [...shipment.timeline].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)) : [];
+          const returnRequest = order.returnRequest || {};
+          const returnEvents = Array.isArray(returnRequest.events)
+            ? [...returnRequest.events].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+            : [];
+          const latestReturnEvent = returnEvents[0];
+          const lastReturnUpdate = latestReturnEvent?.timestamp || returnRequest.decisionAt || returnRequest.requestedAt;
+          const hasActiveReturn = returnRequest?.status && returnRequest.status !== 'none';
           return (
             <Paper
               key={id}
@@ -485,8 +509,8 @@ const OrdersPage = () => {
                     Request Return
                   </Button>
                 )}
-                {order.returnRequest?.status && order.returnRequest.status !== 'none' && (
-                  <Chip size="small" label={`Return: ${String(order.returnRequest.status).replaceAll('_', ' ')}`} color="warning" />
+                {hasActiveReturn && (
+                  <Chip size="small" label={`Return: ${formatLabel(returnRequest.status)}`} color="warning" />
                 )}
                 <Tooltip title="Download Invoice">
                   <IconButton
@@ -518,6 +542,46 @@ const OrdersPage = () => {
                   </IconButton>
                 </Tooltip>
               </Box>
+
+              {hasActiveReturn && (
+                <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: 'warning.50', border: '1px solid', borderColor: 'warning.light' }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                    Return Details
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Current Status: <strong>{formatLabel(returnRequest.status)}</strong>
+                  </Typography>
+                  {lastReturnUpdate && (
+                    <Typography variant="body2" color="text.secondary">
+                      Last Update: {new Date(lastReturnUpdate).toLocaleString()}
+                    </Typography>
+                  )}
+                  {returnRequest.decisionNote && (
+                    <Typography variant="body2" color="text.secondary">
+                      Admin Note: {returnRequest.decisionNote}
+                    </Typography>
+                  )}
+                  {returnRequest.refundAmount !== undefined && returnRequest.refundAmount !== null && (
+                    <Typography variant="body2" color="text.secondary">
+                      Refund Amount: {formatINR(returnRequest.refundAmount)}
+                    </Typography>
+                  )}
+
+                  {returnEvents.length > 0 && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+                        Timeline
+                      </Typography>
+                      {returnEvents.map((event, eventIndex) => (
+                        <Typography key={`${id}-return-event-${eventIndex}`} variant="caption" display="block" color="text.secondary">
+                          {new Date(event.timestamp).toLocaleString()} - {formatLabel(event.status)}
+                          {event.note ? ` | ${event.note}` : ''}
+                        </Typography>
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              )}
             </Paper>
           );
         })}

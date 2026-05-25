@@ -47,6 +47,45 @@ export const loginUser = async (email, password) => {
   }
 };
 
+export const loginWithGoogleToken = async (idToken) => {
+  const response = await fetch(`${API_BASE_URL}/auth/login/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ idToken }),
+  });
+  return await handleResponse(response);
+};
+
+export const requestOtpLogin = async (phoneNumber) => {
+  const response = await fetch(`${API_BASE_URL}/auth/login/otp/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ phoneNumber }),
+  });
+  return await handleResponse(response);
+};
+
+export const verifyOtpLogin = async (phoneNumber, code) => {
+  const response = await fetch(`${API_BASE_URL}/auth/login/otp/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ phoneNumber, code }),
+  });
+  return await handleResponse(response);
+};
+
+export const refreshSession = async () => {
+  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  return await handleResponse(response);
+};
+
 export const registerUser = async (name, email, password, phoneNumber) => {
   try {
     const response = await fetch(`${API_BASE_URL}/auth/signup`, {
@@ -423,8 +462,43 @@ export const deleteAddress = async (addressId) => {
   return await handleResponse(response);
 };
 
+export const getProfiles = async () => {
+  const response = await fetch(`${API_BASE_URL}/auth/profiles`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include'
+  });
+  return await handleResponse(response);
+};
+
+export const addProfileEntry = async (payload) => {
+  const response = await fetch(`${API_BASE_URL}/auth/profiles`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  return await handleResponse(response);
+};
+
 export const getAdminAnalytics = async () => {
   const response = await fetch(`${API_BASE_URL}/admin/analytics`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include'
+  });
+  return await handleResponse(response);
+};
+
+export const getAdminLowStock = async () => {
+  const response = await fetch(`${API_BASE_URL}/admin/inventory/low-stock`, {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${getAuthToken()}`

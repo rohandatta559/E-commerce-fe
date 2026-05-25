@@ -1,21 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Chip, CircularProgress, Container, Paper, Stack, Typography } from '@mui/material';
+import { Alert, Box, Chip, CircularProgress, Container, Paper, Stack, Step, StepLabel, Stepper, Typography } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { getOrderById } from './services/api';
 
 const statusLabel = (status = '') => String(status).replaceAll('_', ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+const ORDER_FLOW = ['placed', 'paid', 'packed', 'shipped', 'out_for_delivery', 'delivered'];
 
 const TrackOrderPage = () => {
   const { orderId } = useParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [order, setOrder] = useState(null);
+  const [lastSyncAt, setLastSyncAt] = useState(null);
 
   const loadOrder = async () => {
     try {
       const data = await getOrderById(orderId);
       setOrder(data);
       setError('');
+      setLastSyncAt(new Date());
     } catch (e) {
       setError(e.message || 'Failed to fetch tracking details');
     } finally {
@@ -34,6 +37,9 @@ const TrackOrderPage = () => {
     const timeline = order?.shipment?.timeline || [];
     return [...timeline].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   }, [order]);
+
+  const currentStatus = String(order?.shipment?.status || order?.status || 'placed').toLowerCase();
+  const activeStep = Math.max(0, ORDER_FLOW.indexOf(currentStatus));
 
   if (loading) {
     return (
@@ -67,7 +73,23 @@ const TrackOrderPage = () => {
               </Typography>
             )}
             <Chip sx={{ width: 'fit-content', mt: 1 }} label={statusLabel(order?.shipment?.status || order?.status || 'placed')} color="primary" />
+            {lastSyncAt && (
+              <Typography variant="caption" color="text.secondary">
+                Live refresh every 15s. Last sync: {lastSyncAt.toLocaleTimeString()}
+              </Typography>
+            )}
           </Stack>
+
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>Order Progress</Typography>
+            <Stepper activeStep={activeStep} alternativeLabel>
+              {ORDER_FLOW.map((step) => (
+                <Step key={step}>
+                  <StepLabel>{statusLabel(step)}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          </Box>
 
           <Box sx={{ mt: 3 }}>
             <Typography variant="h6" sx={{ mb: 1 }}>Shipment Timeline</Typography>
@@ -79,7 +101,7 @@ const TrackOrderPage = () => {
                   <Paper key={`${event.status}-${event.timestamp}-${index}`} variant="outlined" sx={{ p: 1.5 }}>
                     <Typography variant="subtitle2">{statusLabel(event.status)}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {new Date(event.timestamp).toLocaleString()} • source: {event.source}
+                      {new Date(event.timestamp).toLocaleString()} | source: {event.source}
                     </Typography>
                     {event.location && (
                       <Typography variant="body2" color="text.secondary">Location: {event.location}</Typography>

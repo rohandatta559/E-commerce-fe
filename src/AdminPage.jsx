@@ -25,7 +25,7 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import { createAdminProduct, deleteAdminProduct, getAdminAnalytics, getAdminOrders, getAdminProducts, getAdminUsers, updateAdminOrderStatus, updateAdminProduct, updateAdminShipmentDetails, updateAdminReturnRequest } from './services/api';
+import { createAdminProduct, deleteAdminProduct, getAdminAnalytics, getAdminLowStock, getAdminOrders, getAdminProducts, getAdminUsers, updateAdminOrderStatus, updateAdminProduct, updateAdminShipmentDetails, updateAdminReturnRequest } from './services/api';
 import { formatINR } from './utils/currency';
 
 const STATUS_OPTIONS = ['placed', 'paid', 'packed', 'shipped', 'delivered', 'cancelled'];
@@ -37,6 +37,7 @@ const AdminPage = () => {
   const [users, setUsers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
+  const [lowStock, setLowStock] = useState([]);
   const [error, setError] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -57,11 +58,12 @@ const AdminPage = () => {
   const load = async () => {
     try {
       setError('');
-      const [a, u, o, p] = await Promise.all([getAdminAnalytics(), getAdminUsers(), getAdminOrders(), getAdminProducts({ limit: 20 })]);
+      const [a, u, o, p, low] = await Promise.all([getAdminAnalytics(), getAdminUsers(), getAdminOrders(), getAdminProducts({ limit: 1000 }), getAdminLowStock()]);
       setAnalytics(a);
       setUsers(Array.isArray(u) ? u : []);
       setOrders(o.orders || []);
       setProducts(p.products || []);
+      setLowStock(low.products || a.lowStockProducts || []);
     } catch (e) {
       setError(e.message || 'Failed to load admin data');
     }
@@ -187,6 +189,22 @@ const AdminPage = () => {
   };
 
   const topUsers = useMemo(() => users.slice(0, 8), [users]);
+  const inventoryValue = useMemo(() => {
+    return products.reduce((sum, product) => {
+      const basePrice = Number(product?.price || 0);
+      const variants = Array.isArray(product?.variants) ? product.variants : [];
+      if (variants.length > 0) {
+        const variantsValue = variants.reduce((variantSum, variant) => {
+          const variantPrice = Number(variant?.price ?? basePrice);
+          const variantStock = Number(variant?.stock || 0);
+          return variantSum + variantPrice * variantStock;
+        }, 0);
+        return sum + variantsValue;
+      }
+      const baseStock = Number(product?.stock || 0);
+      return sum + basePrice * baseStock;
+    }, 0);
+  }, [products]);
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -198,13 +216,25 @@ const AdminPage = () => {
 
       {analytics && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} sm={6} md={4} lg={2}>
             <Card variant="outlined"><CardContent><Typography color="text.secondary">Total Sales</Typography><Typography variant="h5" fontWeight={700}>{formatINR(analytics.totalSales || 0)}</Typography></CardContent></Card>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} sm={6} md={4} lg={2}>
             <Card variant="outlined"><CardContent><Typography color="text.secondary">Monthly Sales</Typography><Typography variant="h5" fontWeight={700}>{formatINR(analytics.monthlySales || 0)}</Typography></CardContent></Card>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} sm={6} md={4} lg={2}>
+            <Card variant="outlined"><CardContent><Typography color="text.secondary">AOV</Typography><Typography variant="h5" fontWeight={700}>{formatINR(analytics.averageOrderValue || 0)}</Typography></CardContent></Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={4} lg={2}>
+            <Card variant="outlined"><CardContent><Typography color="text.secondary">Total Orders</Typography><Typography variant="h5" fontWeight={700}>{analytics.ordersCount || 0}</Typography></CardContent></Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={4} lg={2}>
+            <Card variant="outlined"><CardContent><Typography color="text.secondary">Total Products</Typography><Typography variant="h5" fontWeight={700}>{analytics.totalProducts ?? products.length}</Typography></CardContent></Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={4} lg={2}>
+            <Card variant="outlined"><CardContent><Typography color="text.secondary">Inventory Value</Typography><Typography variant="h5" fontWeight={700}>{formatINR(inventoryValue)}</Typography></CardContent></Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={4} lg={2}>
             <Card variant="outlined"><CardContent><Typography color="text.secondary">Total Users</Typography><Typography variant="h5" fontWeight={700}>{users.length}</Typography></CardContent></Card>
           </Grid>
         </Grid>
@@ -319,6 +349,39 @@ const AdminPage = () => {
                 </Box>
               ) : null
             ))}
+          </Paper>
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={2} sx={{ mt: 1 }}>
+        <Grid item xs={12} md={6}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>Top Products</Typography>
+            <Stack spacing={1}>
+              {(analytics?.topProducts || []).map((product) => (
+                <Box key={product._id} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">{product.name}</Typography>
+                  <Typography variant="caption" color="text.secondary">{product.totalSold} sold</Typography>
+                </Box>
+              ))}
+              {!(analytics?.topProducts || []).length && <Typography color="text.secondary">No data yet</Typography>}
+            </Stack>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>Low Stock Alerts</Typography>
+            <Stack spacing={1}>
+              {lowStock.slice(0, 10).map((product) => (
+                <Box key={product._id} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">{product.name}</Typography>
+                  <Typography variant="caption" color="error.main">
+                    {product.stock} / threshold {product.lowStockThreshold}
+                  </Typography>
+                </Box>
+              ))}
+              {lowStock.length === 0 && <Typography color="text.secondary">No low-stock products</Typography>}
+            </Stack>
           </Paper>
         </Grid>
       </Grid>

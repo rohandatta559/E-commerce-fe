@@ -17,7 +17,7 @@ import {
   ListItemText,
 } from '@mui/material';
 import { Person as PersonIcon, Email as EmailIcon, Phone as PhoneIcon } from '@mui/icons-material';
-import { addAddress, changePassword, fetchProfile as fetchProfileApi, getAddresses, updateProfile as updateProfileApi } from './services/api';
+import { addAddress, addProfileEntry, changePassword, fetchProfile as fetchProfileApi, getAddresses, getProfiles, updateProfile as updateProfileApi } from './services/api';
 
 const ProfilePage = () => {
   const [user, setUser] = useState(null);
@@ -32,6 +32,7 @@ const ProfilePage = () => {
     phoneNumber: '',
   });
   const [addresses, setAddresses] = useState([]);
+  const [profiles, setProfiles] = useState([]);
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '' });
 
   useEffect(() => {
@@ -53,6 +54,8 @@ const ProfilePage = () => {
         });
         const addressData = await getAddresses();
         setAddresses(addressData.addresses || []);
+        const profileData = await getProfiles();
+        setProfiles(profileData.profiles || []);
       } catch (e) {
         if (!isMounted) return;
         setError(e.message || 'Failed to load profile');
@@ -328,6 +331,42 @@ const ProfilePage = () => {
                     </ListItem>
                   ))}
                   {addresses.length === 0 && <Typography variant="body2" color="text.secondary">No saved addresses yet.</Typography>}
+                </List>
+
+                <Divider sx={{ my: 3, borderColor: 'rgba(124,58,237,0.2)' }} />
+                <Typography variant="h6" sx={{ mb: 1 }}>Profiles</Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={async () => {
+                    try {
+                      await addProfileEntry({
+                        label: `Profile ${profiles.length + 1}`,
+                        fullName: formData.fullName || user?.fullName || '',
+                        email: formData.email || user?.email || '',
+                        phoneNumber: formData.phoneNumber || user?.phoneNumber || '',
+                        isDefault: profiles.length === 0,
+                      });
+                      const profileData = await getProfiles();
+                      setProfiles(profileData.profiles || []);
+                      setSuccessMessage('Profile entry added');
+                    } catch (e) {
+                      setError(e.message || 'Failed to add profile');
+                    }
+                  }}
+                >
+                  Add Current as Profile
+                </Button>
+                <List dense>
+                  {profiles.map((profile) => (
+                    <ListItem key={profile._id}>
+                      <ListItemText
+                        primary={`${profile.label || 'Profile'} - ${profile.fullName || ''}${profile.isDefault ? ' (Default)' : ''}`}
+                        secondary={`${profile.email || '-'} | ${profile.phoneNumber || '-'}`}
+                      />
+                    </ListItem>
+                  ))}
+                  {profiles.length === 0 && <Typography variant="body2" color="text.secondary">No profiles yet.</Typography>}
                 </List>
               </Box>
             </Stack>
