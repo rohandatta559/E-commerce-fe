@@ -31,6 +31,7 @@ import { formatINR } from './utils/currency';
 const STATUS_OPTIONS = ['placed', 'paid', 'packed', 'shipped', 'delivered', 'cancelled'];
 const SHIPMENT_STATUS_OPTIONS = ['placed', 'paid', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'exception'];
 const RETURN_STATUS_OPTIONS = ['approved', 'rejected', 'picked_up', 'refunded', 'closed'];
+const TERMINAL_RETURN_STATUSES = ['rejected', 'refunded', 'closed'];
 
 const AdminPage = () => {
   const [analytics, setAnalytics] = useState(null);
@@ -333,8 +334,10 @@ const AdminPage = () => {
                 </Paper>
               );
             })}
-            {orders.map((order) => (
-              order.returnRequest?.status && order.returnRequest.status !== 'none' ? (
+            {orders.map((order) => {
+              const hasReturnRequest = order.returnRequest?.status && order.returnRequest.status !== 'none';
+              const showReturnActions = hasReturnRequest && !TERMINAL_RETURN_STATUSES.includes(order.returnRequest.status);
+              return showReturnActions ? (
                 <Box key={`${order._id}-return-actions`} sx={{ mt: 1 }}>
                   <Typography variant="caption" color="text.secondary">
                     Return Request for #{order._id.slice(-8)} • {order.returnRequest.reasonCode}
@@ -347,8 +350,8 @@ const AdminPage = () => {
                     ))}
                   </Stack>
                 </Box>
-              ) : null
-            ))}
+              ) : null;
+            })}
           </Paper>
         </Grid>
       </Grid>

@@ -87,18 +87,10 @@ function Navigation() {
         position="sticky"
         elevation={0}
         sx={{
-          // On immersive routes (login/signup): dark glass navbar that blends with the page
-          bgcolor: isImmersive ? 'rgba(6, 9, 20, 0.85)' : '#ffffff',
-          color: isImmersive ? '#fff' : 'text.primary',
-          backdropFilter: isImmersive ? 'blur(16px)' : 'none',
-          WebkitBackdropFilter: isImmersive ? 'blur(16px)' : 'none',
-          borderBottom: isImmersive
-            ? '1px solid rgba(255,255,255,0.07)'
-            : '1px solid #e5e7eb',
-          boxShadow: isImmersive
-            ? '0 1px 0 rgba(255,255,255,0.04)'
-            : 'none',
-          // Sit above the Login's fixed overlay (z=1200) so it stays visible
+          bgcolor: '#ffffff',
+          color: 'text.primary',
+          borderBottom: '1px solid #e5e7eb',
+          boxShadow: 'none',
           zIndex: 1300,
           transition: 'background 0.4s ease, border-color 0.4s ease',
         }}
@@ -106,7 +98,7 @@ function Navigation() {
         <Container maxWidth="lg">
           <Toolbar disableGutters sx={{ minHeight: { xs: 56, sm: 64 }, alignItems: 'center', gap: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {!isLoggedIn && (
+              {(!isLoggedIn || isImmersive) && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2.5 }, mr: { xs: 1, sm: 3 } }}>
                   <Button
                     color="inherit"
@@ -115,8 +107,8 @@ function Navigation() {
                     sx={{
                       textTransform: 'none',
                       fontWeight: 500,
-                      color: isImmersive ? 'rgba(255,255,255,0.65)' : 'inherit',
-                      '&:hover': { color: isImmersive ? '#fff' : 'inherit' },
+                      color: 'inherit',
+                      '&:hover': { color: 'inherit' },
                     }}
                   >
                     Contact Us
@@ -128,8 +120,8 @@ function Navigation() {
                     sx={{
                       textTransform: 'none',
                       fontWeight: 500,
-                      color: isImmersive ? 'rgba(255,255,255,0.65)' : 'inherit',
-                      '&:hover': { color: isImmersive ? '#fff' : 'inherit' },
+                      color: 'inherit',
+                      '&:hover': { color: 'inherit' },
                     }}
                   >
                     Our Story
@@ -141,8 +133,8 @@ function Navigation() {
                     sx={{
                       textTransform: 'none',
                       fontWeight: 500,
-                      color: isImmersive ? 'rgba(255,255,255,0.65)' : 'inherit',
-                      '&:hover': { color: isImmersive ? '#fff' : 'inherit' },
+                      color: 'inherit',
+                      '&:hover': { color: 'inherit' },
                     }}
                   >
                     New Arrivals
@@ -168,7 +160,6 @@ function Navigation() {
                   sx={{
                     fontWeight: 500,
                     letterSpacing: 0,
-                    // Gold logo pops on both light and dark navbars
                     color: '#d4a73c',
                     lineHeight: 1.1,
                     fontSize: { xs: '1.8rem', sm: '2rem' },
@@ -180,100 +171,101 @@ function Navigation() {
               </Box>
             </Box>
             <Box sx={{ flexGrow: 1 }} />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1.5 }, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              {isLoggedIn && !isAdminDashboard && (
-                <Button
-                  color="inherit"
-                  component={RouterLink}
-                  to="/cart"
-                  startIcon={<ShoppingCart />}
-                  sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 } }}
-                >
-                  <Badge badgeContent={cartCount} color="primary" sx={{ mr: { xs: 0, sm: 0.5 } }}>
-                    <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Cart</Box>
-                  </Badge>
-                </Button>
-              )}
-              {!isLoggedIn ? (
-                <>
-                  <IconButton
+            {!isImmersive && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1.5 }, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {isLoggedIn && !isAdminDashboard && (
+                  <Button
                     color="inherit"
-                    aria-label="search"
-                    sx={{ color: isImmersive ? 'rgba(255,255,255,0.6)' : 'inherit', '&:hover': { color: isImmersive ? '#fff' : 'inherit' } }}
+                    component={RouterLink}
+                    to="/cart"
+                    startIcon={<ShoppingCart />}
+                    sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 } }}
                   >
-                    <Search />
-                  </IconButton>
-                  <IconButton
-                    color="inherit"
-                    aria-label="login"
-                    onClick={handleLoginClick}
-                    sx={{ color: isImmersive ? 'rgba(255,255,255,0.6)' : 'inherit', '&:hover': { color: isImmersive ? '#fff' : 'inherit' } }}
-                  >
-                    <Person />
-                  </IconButton>
-                  <IconButton
-                    color="inherit"
-                    aria-label="wishlist"
-                    onClick={() => navigateProtected('/wishlist')}
-                    sx={{ color: isImmersive ? 'rgba(255,255,255,0.6)' : 'inherit', '&:hover': { color: isImmersive ? '#fff' : 'inherit' } }}
-                  >
-                    <Badge badgeContent={0} color="error">
-                      <FavoriteBorder />
+                    <Badge badgeContent={cartCount} color="primary" sx={{ mr: { xs: 0, sm: 0.5 } }}>
+                      <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Cart</Box>
                     </Badge>
-                  </IconButton>
-                  <IconButton
-                    color="inherit"
-                    aria-label="cart"
-                    onClick={() => navigate('/cart')}
-                    sx={{ color: isImmersive ? 'rgba(255,255,255,0.6)' : 'inherit', '&:hover': { color: isImmersive ? '#fff' : 'inherit' } }}
-                  >
-                    <Badge badgeContent={cartCount} color="error">
-                      <ShoppingCart />
-                    </Badge>
-                  </IconButton>
-                </>
-              ) : (
-                <>
-                  {!isAdminDashboard && (
-                    <>
-                      <Button color="inherit" component={RouterLink} to="/orders" sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}>
-                        Orders
-                      </Button>
-                      <Button
-                        color="inherit"
-                        startIcon={<FavoriteBorder />}
-                        component={RouterLink}
-                        to="/wishlist"
-                        sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}
-                      >
-                        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Wishlist</Box>
-                      </Button>
-                      <Button
-                        color="inherit"
-                        startIcon={<Person />}
-                        component={RouterLink}
-                        to="/profile"
-                        sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}
-                      >
-                        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Profile</Box>
-                      </Button>
-                    </>
-                  )}
-                  <Button color="inherit" onClick={handleLogout} sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}>
-                    Logout
                   </Button>
-                  {role === 'admin' && (
-                    <Button color="inherit" component={RouterLink} to="/admin" sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}>
-                      Admin
+                )}
+                {!isLoggedIn ? (
+                  <>
+                    <IconButton
+                      color="inherit"
+                      aria-label="search"
+                      sx={{ '&:hover': { color: 'inherit' } }}
+                    >
+                      <Search />
+                    </IconButton>
+                    <IconButton
+                      color="inherit"
+                      aria-label="login"
+                      onClick={handleLoginClick}
+                      sx={{ '&:hover': { color: 'inherit' } }}
+                    >
+                      <Person />
+                    </IconButton>
+                    <IconButton
+                      color="inherit"
+                      aria-label="wishlist"
+                      onClick={() => navigateProtected('/wishlist')}
+                      sx={{ '&:hover': { color: 'inherit' } }}
+                    >
+                      <Badge badgeContent={0} color="error">
+                        <FavoriteBorder />
+                      </Badge>
+                    </IconButton>
+                    <IconButton
+                      color="inherit"
+                      aria-label="cart"
+                      onClick={() => navigate('/cart')}
+                      sx={{ '&:hover': { color: 'inherit' } }}
+                    >
+                      <Badge badgeContent={cartCount} color="error">
+                        <ShoppingCart />
+                      </Badge>
+                    </IconButton>
+                  </>
+                ) : (
+                  <>
+                    {!isAdminDashboard && (
+                      <>
+                        <Button color="inherit" component={RouterLink} to="/orders" sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}>
+                          Orders
+                        </Button>
+                        <Button
+                          color="inherit"
+                          startIcon={<FavoriteBorder />}
+                          component={RouterLink}
+                          to="/wishlist"
+                          sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}
+                        >
+                          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Wishlist</Box>
+                        </Button>
+                        <Button
+                          color="inherit"
+                          startIcon={<Person />}
+                          component={RouterLink}
+                          to="/profile"
+                          sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}
+                        >
+                          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Profile</Box>
+                        </Button>
+                      </>
+                    )}
+                    <Button color="inherit" onClick={handleLogout} sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}>
+                      Logout
                     </Button>
-                  )}
-                </>
-              )}
-            </Box>
+                    {role === 'admin' && (
+                      <Button color="inherit" component={RouterLink} to="/admin" sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}>
+                        Admin
+                      </Button>
+                    )}
+                  </>
+                )}
+              </Box>
+            )}
           </Toolbar>
         </Container>
       </AppBar>
-
       {/*
         On immersive routes (login/signup): remove Container padding/margin entirely.
         The Login component uses position:fixed to cover the full viewport anyway,

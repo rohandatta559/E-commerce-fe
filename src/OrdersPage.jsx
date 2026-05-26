@@ -1,14 +1,203 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Alert, Box, CircularProgress, Container, Divider, Paper, Stack, Typography, Grid, Card, CardContent, Select, MenuItem, FormControl, InputLabel, IconButton, Tooltip, Snackbar, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import {
+  Alert, Box, CircularProgress, Container, Divider, Stack,
+  Typography, Select, MenuItem, FormControl, InputLabel,
+  IconButton, Tooltip, Snackbar, Chip, Button,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField,
+} from '@mui/material';
 import { API_BASE_URL, getOrders, requestOrderReturn } from './services/api';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import DownloadIcon from '@mui/icons-material/Download';
 import EmailIcon from '@mui/icons-material/Email';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { formatINR } from './utils/currency';
 import { Link as RouterLink } from 'react-router-dom';
+import { keyframes, styled } from '@mui/system';
 
+/* ── Animations ──────────────────────────────────────────────────────────── */
+const fadeUp = keyframes`
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+const pulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+`;
+
+/* ── Styled components ───────────────────────────────────────────────────── */
+const PageRoot = styled(Box)({
+  minHeight: '100vh',
+  background: '#faf8f4',
+  paddingBottom: 80,
+});
+
+const PageHeader = styled(Box)({
+  background: 'linear-gradient(135deg, #1a1208 0%, #2d1f0a 60%, #1a1208 100%)',
+  padding: '48px 0 40px',
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    inset: 0,
+    backgroundImage: `
+      radial-gradient(ellipse at 15% 60%, rgba(212,167,60,0.15) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 30%, rgba(212,167,60,0.10) 0%, transparent 50%)
+    `,
+    pointerEvents: 'none',
+  },
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    background: 'linear-gradient(90deg, transparent, rgba(212,167,60,0.45), transparent)',
+  },
+});
+
+const StatCard = styled(Box)(({ delay = 0 }) => ({
+  background: '#fff',
+  borderRadius: 20,
+  padding: '24px 28px',
+  border: '1px solid rgba(212,167,60,0.15)',
+  boxShadow: '0 2px 16px rgba(26,18,8,0.07)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 16,
+  animation: `${fadeUp} 0.5s ease ${delay}s both`,
+  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+  '&:hover': {
+    transform: 'translateY(-3px)',
+    boxShadow: '0 8px 28px rgba(26,18,8,0.11)',
+  },
+}));
+
+const StatIconBox = styled(Box)(({ color }) => ({
+  width: 52,
+  height: 52,
+  borderRadius: 14,
+  background: color || 'rgba(212,167,60,0.10)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+}));
+
+const FilterBar = styled(Box)({
+  background: '#fff',
+  borderRadius: 16,
+  padding: '16px 20px',
+  border: '1px solid rgba(212,167,60,0.15)',
+  boxShadow: '0 2px 12px rgba(26,18,8,0.06)',
+  display: 'flex',
+  gap: 12,
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  marginBottom: 24,
+});
+
+const GoldSelect = styled(Select)({
+  fontFamily: "'DM Sans', sans-serif",
+  fontSize: 14,
+  borderRadius: 10,
+  '& .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'rgba(212,167,60,0.25)',
+  },
+  '&:hover .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'rgba(212,167,60,0.5)',
+  },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+    borderColor: '#d4a73c',
+    borderWidth: '1.5px',
+  },
+});
+
+const OrderCard = styled(Box)(({ delay = 0 }) => ({
+  background: '#fff',
+  borderRadius: 20,
+  border: '1px solid rgba(212,167,60,0.12)',
+  boxShadow: '0 2px 12px rgba(26,18,8,0.06)',
+  overflow: 'hidden',
+  animation: `${fadeUp} 0.45s ease ${delay}s both`,
+  transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+  '&:hover': {
+    transform: 'translateY(-3px)',
+    boxShadow: '0 12px 32px rgba(26,18,8,0.11)',
+  },
+}));
+
+const OrderCardHeader = styled(Box)({
+  background: 'linear-gradient(135deg, #fdf8ee, #faf4e4)',
+  padding: '18px 24px',
+  borderBottom: '1px solid rgba(212,167,60,0.12)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  flexWrap: 'wrap',
+  gap: 8,
+});
+
+const OrderCardBody = styled(Box)({
+  padding: '20px 24px',
+});
+
+const StatusBadge = ({ status }) => {
+  const config = {
+    Delivered:  { bg: 'rgba(22,163,74,0.1)',   color: '#15803d', border: 'rgba(22,163,74,0.25)',   dot: '#16a34a' },
+    Shipped:    { bg: 'rgba(14,165,233,0.1)',   color: '#0369a1', border: 'rgba(14,165,233,0.25)',  dot: '#0ea5e9' },
+    Paid:       { bg: 'rgba(212,167,60,0.12)',  color: '#92400e', border: 'rgba(212,167,60,0.3)',   dot: '#d4a73c' },
+    Packed:     { bg: 'rgba(139,92,246,0.10)',  color: '#6d28d9', border: 'rgba(139,92,246,0.25)',  dot: '#8b5cf6' },
+    Cancelled:  { bg: 'rgba(220,38,38,0.09)',   color: '#b91c1c', border: 'rgba(220,38,38,0.2)',    dot: '#dc2626' },
+    Placed:     { bg: 'rgba(100,116,139,0.09)', color: '#475569', border: 'rgba(100,116,139,0.2)',  dot: '#64748b' },
+  };
+  const c = config[status] || config.Placed;
+  return (
+    <Box sx={{
+      display: 'inline-flex', alignItems: 'center', gap: 0.7,
+      px: 1.5, py: 0.6,
+      borderRadius: 50,
+      background: c.bg,
+      border: `1px solid ${c.border}`,
+      fontFamily: "'DM Sans', sans-serif",
+      fontSize: 12,
+      fontWeight: 600,
+      color: c.color,
+      letterSpacing: '0.02em',
+    }}>
+      <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: c.dot, flexShrink: 0,
+        animation: ['Shipped','Placed','Packed'].includes(status) ? `${pulse} 2s ease infinite` : 'none',
+      }} />
+      {status}
+    </Box>
+  );
+};
+
+const TimelineEvent = ({ event, isLast }) => (
+  <Box sx={{ display: 'flex', gap: 1.5, position: 'relative' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+      <Box sx={{ width: 8, height: 8, borderRadius: '50%', background: '#d4a73c', mt: 0.4, flexShrink: 0 }} />
+      {!isLast && <Box sx={{ width: 1, flex: 1, background: 'rgba(212,167,60,0.2)', mt: 0.5, mb: 0.5 }} />}
+    </Box>
+    <Box sx={{ pb: isLast ? 0 : 1.5 }}>
+      <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 12, color: '#3d2d0e', fontWeight: 500, lineHeight: 1.3 }}>
+        {String(event.status || '').replaceAll('_', ' ').replace(/\b\w/g, m => m.toUpperCase())}
+        {event.location && <Box component="span" sx={{ color: '#9e8e72', fontWeight: 400 }}> · {event.location}</Box>}
+      </Typography>
+      <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 11, color: '#9e8e72', mt: 0.2 }}>
+        {new Date(event.timestamp).toLocaleString()}
+      </Typography>
+    </Box>
+  </Box>
+);
+
+/* ── Main Component ──────────────────────────────────────────────────────── */
 const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,12 +208,7 @@ const OrdersPage = () => {
   const [returnDialog, setReturnDialog] = useState({ open: false, orderId: '' });
   const [returnForm, setReturnForm] = useState({ reasonCode: 'damaged', reasonNote: '', evidenceUrls: '' });
   const [lastSyncAt, setLastSyncAt] = useState(null);
-  const [stats, setStats] = useState({
-    totalOrders: 0,
-    totalSpent: 0,
-    avgOrderValue: 0,
-    deliveredOrders: 0,
-  });
+  const [stats, setStats] = useState({ totalOrders: 0, totalSpent: 0, avgOrderValue: 0, deliveredOrders: 0 });
 
   const normalizeStatus = (order) => {
     const rawStatus = String(order?.status || '').trim().toLowerCase();
@@ -36,69 +220,46 @@ const OrdersPage = () => {
 
   const getDisplayStatus = (order) => {
     const status = normalizeStatus(order);
-    if (status === 'delivered') return 'Delivered';
-    if (status === 'paid') return 'Paid';
-    if (status === 'packed') return 'Packed';
-    if (status === 'shipped') return 'Shipped';
-    if (status === 'cancelled') return 'Cancelled';
-    return 'Placed';
+    const map = { delivered: 'Delivered', paid: 'Paid', packed: 'Packed', shipped: 'Shipped', cancelled: 'Cancelled' };
+    return map[status] || 'Placed';
   };
 
   const formatLabel = (value = '') =>
-    String(value).replaceAll('_', ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+    String(value).replaceAll('_', ' ').replace(/\b\w/g, m => m.toUpperCase());
 
   const fetchOrders = async ({ silent = false } = {}) => {
-      if (!silent) {
-        setLoading(true);
-      }
-      setError('');
+    if (!silent) setLoading(true);
+    setError('');
+    try {
+      const normalized = await getOrders();
+      setOrders(normalized);
+      setLastSyncAt(new Date());
       try {
-        const normalized = await getOrders();
-        setOrders(normalized);
-        setLastSyncAt(new Date());
-
-        // Try to fetch stats from backend, fallback to client-side calculation
-        try {
-          const statsResponse = await fetch(`${API_BASE_URL}/orders/stats/overview`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            credentials: 'include'
-          });
-          if (statsResponse.ok) {
-            const statsData = await statsResponse.json();
-            setStats({
-              totalOrders: statsData.totalOrders,
-              totalSpent: statsData.totalSpent,
-              avgOrderValue: statsData.avgOrderValue,
-              deliveredOrders: statsData.deliveredOrders,
-            });
-          }
-        } catch (statsError) {
-          // Fallback to client-side calculation
-          if (normalized.length > 0) {
-            const totalSpent = normalized.reduce((sum, order) => {
-              const amount = order.totalPrice ?? order.totalAmount ?? order.total ?? 0;
-              return sum + Number(amount);
-            }, 0);
-            const deliveredCount = normalized.filter(order => normalizeStatus(order) === 'delivered').length;
-            
-            setStats({
-              totalOrders: normalized.length,
-              totalSpent: totalSpent,
-              avgOrderValue: totalSpent / normalized.length,
-              deliveredOrders: deliveredCount,
-            });
-          }
+        const statsResponse = await fetch(`${API_BASE_URL}/orders/stats/overview`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          credentials: 'include',
+        });
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setStats(statsData);
         }
-      } catch (e) {
-        setError(e.message || 'Failed to load orders.');
-      } finally {
-        if (!silent) {
-          setLoading(false);
+      } catch {
+        if (normalized.length > 0) {
+          const totalSpent = normalized.reduce((sum, o) => sum + Number(o.totalPrice ?? o.totalAmount ?? o.total ?? 0), 0);
+          setStats({
+            totalOrders: normalized.length,
+            totalSpent,
+            avgOrderValue: totalSpent / normalized.length,
+            deliveredOrders: normalized.filter(o => normalizeStatus(o) === 'delivered').length,
+          });
         }
       }
-    };
+    } catch (e) {
+      setError(e.message || 'Failed to load orders.');
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -106,71 +267,38 @@ const OrdersPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Filter and sort orders
   const filteredAndSortedOrders = useMemo(() => {
     let result = [...orders];
-
-    // Apply filter
     if (filterStatus !== 'all') {
       result = result.filter(order => {
         const status = normalizeStatus(order);
-        if (filterStatus === 'pending') {
-          return ['placed', 'packed'].includes(status);
-        }
+        if (filterStatus === 'pending') return ['placed', 'packed'].includes(status);
         return status === filterStatus.toLowerCase();
       });
     }
-
-    // Apply sort
-    if (sortBy === 'date-desc') {
-      result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    } else if (sortBy === 'date-asc') {
-      result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    } else if (sortBy === 'amount-desc') {
-      result.sort((a, b) => {
-        const amountA = a.totalPrice ?? a.totalAmount ?? a.total ?? 0;
-        const amountB = b.totalPrice ?? b.totalAmount ?? b.total ?? 0;
-        return amountB - amountA;
-      });
-    } else if (sortBy === 'amount-asc') {
-      result.sort((a, b) => {
-        const amountA = a.totalPrice ?? a.totalAmount ?? a.total ?? 0;
-        const amountB = b.totalPrice ?? b.totalAmount ?? b.total ?? 0;
-        return amountA - amountB;
-      });
-    }
-
+    const getAmount = o => o.totalPrice ?? o.totalAmount ?? o.total ?? 0;
+    if (sortBy === 'date-desc')    result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    if (sortBy === 'date-asc')     result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    if (sortBy === 'amount-desc')  result.sort((a, b) => getAmount(b) - getAmount(a));
+    if (sortBy === 'amount-asc')   result.sort((a, b) => getAmount(a) - getAmount(b));
     return result;
   }, [orders, filterStatus, sortBy]);
 
-  // Action handlers
   const handleDownloadInvoice = async (orderId) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/orders/${orderId}/invoice`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        credentials: 'include'
+        headers: { 'Authorization': `Bearer ${token}` }, credentials: 'include',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to download invoice');
-      }
-
+      if (!response.ok) throw new Error('Failed to download invoice');
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `invoice-${orderId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      setSnackbar({ open: true, message: 'Invoice downloaded successfully!', severity: 'success' });
-    } catch (error) {
-      console.error('Download invoice error:', error);
+      a.href = url; a.download = `invoice-${orderId}.pdf`;
+      document.body.appendChild(a); a.click();
+      window.URL.revokeObjectURL(url); document.body.removeChild(a);
+      setSnackbar({ open: true, message: 'Invoice downloaded!', severity: 'success' });
+    } catch {
       setSnackbar({ open: true, message: 'Failed to download invoice', severity: 'error' });
     }
   };
@@ -180,33 +308,20 @@ const OrdersPage = () => {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/orders/${orderId}/send-invoice`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
       const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data?.error || data?.message || 'Failed to send invoice email');
-      }
-
+      if (!response.ok) throw new Error(data?.error || data?.message || 'Failed to send invoice email');
       if (data?.invoiceDownloadUrl) {
         window.open(data.invoiceDownloadUrl, '_blank', 'noopener,noreferrer');
-        setSnackbar({ open: true, message: 'Email not configured. Opened invoice download instead.', severity: 'info' });
+        setSnackbar({ open: true, message: 'Opened invoice download link', severity: 'info' });
         return;
       }
-
-      setSnackbar({ open: true, message: data?.message || 'Invoice email sent successfully!', severity: 'success' });
-    } catch (error) {
-      console.error('Send invoice email error:', error);
+      setSnackbar({ open: true, message: data?.message || 'Invoice email sent!', severity: 'success' });
+    } catch {
       setSnackbar({ open: true, message: 'Failed to send invoice email', severity: 'error' });
     }
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
   };
 
   const submitReturnRequest = async () => {
@@ -214,10 +329,7 @@ const OrdersPage = () => {
       const payload = {
         reasonCode: returnForm.reasonCode,
         reasonNote: returnForm.reasonNote,
-        evidenceUrls: returnForm.evidenceUrls
-          .split(',')
-          .map((x) => x.trim())
-          .filter(Boolean),
+        evidenceUrls: returnForm.evidenceUrls.split(',').map(x => x.trim()).filter(Boolean),
       };
       await requestOrderReturn(returnDialog.orderId, payload);
       setSnackbar({ open: true, message: 'Return request submitted', severity: 'success' });
@@ -231,410 +343,560 @@ const OrdersPage = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-          Your Orders
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Track purchases, invoices, and delivery updates.
-        </Typography>
-        {lastSyncAt && (
-          <Typography variant="caption" color="text.secondary">
-            Live refresh every 20s. Last sync: {lastSyncAt.toLocaleTimeString()}
-          </Typography>
-        )}
-      </Box>
+    <PageRoot>
+      {/* ── Page Header ── */}
+      <PageHeader>
+        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+            <Box>
+              <Typography sx={{
+                fontFamily: "'DM Serif Display', Georgia, serif",
+                fontSize: { xs: '2rem', sm: '2.6rem' },
+                fontWeight: 400,
+                color: '#faf8f4',
+                lineHeight: 1.1,
+                letterSpacing: '-0.01em',
+              }}>
+                Your Orders
+              </Typography>
+              <Typography sx={{ fontFamily: "'DM Serif Display'", fontStyle: 'italic', fontSize: 15, color: '#d4a73c', mt: 0.6 }}>
+                purchases, invoices & delivery updates
+              </Typography>
+            </Box>
+            {lastSyncAt && (
+              <Box sx={{
+                display: 'flex', alignItems: 'center', gap: 1,
+                background: 'rgba(255,255,255,0.07)', borderRadius: 50,
+                px: 2, py: 0.8, border: '1px solid rgba(255,255,255,0.1)',
+              }}>
+                <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', animation: `${pulse} 2s ease infinite` }} />
+                <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
+                  Live · {lastSyncAt.toLocaleTimeString()}
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </Container>
+      </PageHeader>
 
-      {/* Statistics Dashboard */}
-      {!loading && !error && orders.length > 0 && (
-        <Grid container spacing={2} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card variant="outlined">
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">Total Orders</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 800, mt: 1 }}>{stats.totalOrders}</Typography>
-                  </Box>
-                  <ShoppingBagIcon sx={{ fontSize: 32, color: 'text.disabled' }} />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3}>
-            <Card variant="outlined">
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">Total Spent</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 800, mt: 1 }}>{formatINR(stats.totalSpent)}</Typography>
-                  </Box>
-                  <TrendingUpIcon sx={{ fontSize: 32, color: 'text.disabled' }} />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3}>
-            <Card variant="outlined">
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">Avg Order Value</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 800, mt: 1 }}>{formatINR(stats.avgOrderValue)}</Typography>
-                  </Box>
-                  <TrendingUpIcon sx={{ fontSize: 32, color: 'text.disabled' }} />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3}>
-            <Card variant="outlined">
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">Delivered</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 800, mt: 1 }}>{stats.deliveredOrders}</Typography>
-                  </Box>
-                  <LocalShippingIcon sx={{ fontSize: 32, color: 'text.disabled' }} />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      )}
-
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress sx={{ color: 'primary.main' }} />
-        </Box>
-      )}
-      {error && <Alert severity="error" sx={{ borderRadius: 3 }}>{error}</Alert>}
-      {!loading && !error && orders.length === 0 && (
-        <Paper
-          sx={{
-            p: 4,
-            borderRadius: 4,
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(248,250,252,0.95))',
-            border: '1px solid rgba(124,58,237,0.12)',
-          }}
-        >
-          <Typography color="text.secondary" sx={{ fontSize: '1.1rem' }}>
-            You have not placed any orders yet.
-          </Typography>
-        </Paper>
-      )}
-
-      {/* Filter and Sort Controls - Always visible when not loading */}
-      {!loading && !error && (
-        <Paper
-          sx={{
-            p: 3,
-            borderRadius: 3,
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.98))',
-            border: '2px solid rgba(124,58,237,0.2)',
-            mb: 3,
-            display: 'flex',
+      <Container maxWidth="lg" sx={{ pt: 4 }}>
+        {/* ── Stat Cards ── */}
+        {!loading && !error && orders.length > 0 && (
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
             gap: 2,
-            flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { xs: 'stretch', sm: 'center' },
-            boxShadow: '0 4px 12px rgba(124,58,237,0.1)',
-          }}
-        >
-          <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, flex: 1, alignItems: { xs: 'stretch', sm: 'flex-end' } }}>
-            <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
-              <InputLabel id="filter-select-label">
+            mb: 4,
+          }}>
+            <StatCard delay={0}>
+              <Box>
+                <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 12, color: '#9e8e72', fontWeight: 500, mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Total Orders
+                </Typography>
+                <Typography sx={{ fontFamily: "'DM Serif Display', Georgia, serif", fontSize: '2rem', color: '#1a1208', lineHeight: 1 }}>
+                  {stats.totalOrders}
+                </Typography>
+              </Box>
+              <StatIconBox color="rgba(212,167,60,0.10)">
+                <ShoppingBagIcon sx={{ color: '#d4a73c', fontSize: 24 }} />
+              </StatIconBox>
+            </StatCard>
+
+            <StatCard delay={0.07}>
+              <Box>
+                <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 12, color: '#9e8e72', fontWeight: 500, mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Total Spent
+                </Typography>
+                <Typography sx={{ fontFamily: "'DM Serif Display', Georgia, serif", fontSize: '2rem', color: '#1a1208', lineHeight: 1 }}>
+                  {formatINR(stats.totalSpent)}
+                </Typography>
+              </Box>
+              <StatIconBox color="rgba(22,163,74,0.09)">
+                <TrendingUpIcon sx={{ color: '#16a34a', fontSize: 24 }} />
+              </StatIconBox>
+            </StatCard>
+
+            <StatCard delay={0.14}>
+              <Box>
+                <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 12, color: '#9e8e72', fontWeight: 500, mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Avg. Order
+                </Typography>
+                <Typography sx={{ fontFamily: "'DM Serif Display', Georgia, serif", fontSize: '2rem', color: '#1a1208', lineHeight: 1 }}>
+                  {formatINR(stats.avgOrderValue)}
+                </Typography>
+              </Box>
+              <StatIconBox color="rgba(14,165,233,0.09)">
+                <ReceiptLongIcon sx={{ color: '#0ea5e9', fontSize: 24 }} />
+              </StatIconBox>
+            </StatCard>
+
+            <StatCard delay={0.21}>
+              <Box>
+                <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 12, color: '#9e8e72', fontWeight: 500, mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Delivered
+                </Typography>
+                <Typography sx={{ fontFamily: "'DM Serif Display', Georgia, serif", fontSize: '2rem', color: '#1a1208', lineHeight: 1 }}>
+                  {stats.deliveredOrders}
+                </Typography>
+              </Box>
+              <StatIconBox color="rgba(139,92,246,0.09)">
+                <LocalShippingIcon sx={{ color: '#8b5cf6', fontSize: 24 }} />
+              </StatIconBox>
+            </StatCard>
+          </Box>
+        )}
+
+        {/* ── Loading ── */}
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 12, flexDirection: 'column', gap: 2 }}>
+            <CircularProgress sx={{ color: '#d4a73c' }} thickness={3} size={44} />
+            <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 14, color: '#9e8e72' }}>Loading your orders…</Typography>
+          </Box>
+        )}
+
+        {error && (
+          <Alert severity="error" sx={{ borderRadius: 3, fontFamily: "'DM Sans'" }}>{error}</Alert>
+        )}
+
+        {/* ── Empty State ── */}
+        {!loading && !error && orders.length === 0 && (
+          <Box sx={{
+            textAlign: 'center', py: 12,
+            animation: `${fadeUp} 0.5s ease both`,
+          }}>
+            <Box sx={{
+              width: 80, height: 80, borderRadius: '50%',
+              background: 'rgba(212,167,60,0.10)',
+              border: '1px solid rgba(212,167,60,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              mx: 'auto', mb: 3,
+            }}>
+              <ShoppingBagIcon sx={{ fontSize: 36, color: '#d4a73c' }} />
+            </Box>
+            <Typography sx={{ fontFamily: "'DM Serif Display', Georgia, serif", fontSize: '1.6rem', color: '#1a1208', mb: 1 }}>
+              No orders yet
+            </Typography>
+            <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 14, color: '#9e8e72', mb: 3 }}>
+              Your purchase history will appear here
+            </Typography>
+            <Button
+              component={RouterLink}
+              to="/products"
+              sx={{
+                background: 'linear-gradient(135deg, #d4a73c, #b8871e)',
+                color: '#fff',
+                fontFamily: "'DM Sans'",
+                fontWeight: 600,
+                borderRadius: 50,
+                px: 4, py: 1.2,
+                textTransform: 'none',
+                boxShadow: '0 4px 16px rgba(212,167,60,0.35)',
+              }}
+              endIcon={<KeyboardArrowRightIcon />}
+            >
+              Start Shopping
+            </Button>
+          </Box>
+        )}
+
+        {/* ── Filter Bar ── */}
+        {!loading && !error && orders.length > 0 && (
+          <FilterBar>
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel sx={{ fontFamily: "'DM Sans'", fontSize: 13, color: '#9e8e72', '&.Mui-focused': { color: '#d4a73c' } }}>
                 Filter by Status
               </InputLabel>
-              <Select
-                labelId="filter-select-label"
-                id="filter-select"
+              <GoldSelect
                 value={filterStatus}
                 label="Filter by Status"
                 onChange={(e) => setFilterStatus(e.target.value)}
-                sx={{
-                  borderRadius: 2,
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': { borderColor: 'primary.main' },
-                  },
-                }}
               >
-                <MenuItem value="all">All Orders</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
-                <MenuItem value="paid">Paid</MenuItem>
-                <MenuItem value="shipped">Shipped</MenuItem>
-                <MenuItem value="delivered">Delivered</MenuItem>
-              </Select>
+                {['all','pending','paid','shipped','delivered','cancelled'].map(v => (
+                  <MenuItem key={v} value={v} sx={{ fontFamily: "'DM Sans'", fontSize: 13 }}>
+                    {v === 'all' ? 'All Orders' : formatLabel(v)}
+                  </MenuItem>
+                ))}
+              </GoldSelect>
             </FormControl>
 
-            <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
-              <InputLabel id="sort-select-label">
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel sx={{ fontFamily: "'DM Sans'", fontSize: 13, color: '#9e8e72', '&.Mui-focused': { color: '#d4a73c' } }}>
                 Sort by
               </InputLabel>
-              <Select
-                labelId="sort-select-label"
-                id="sort-select"
+              <GoldSelect
                 value={sortBy}
                 label="Sort by"
                 onChange={(e) => setSortBy(e.target.value)}
-                sx={{
-                  borderRadius: 2,
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': { borderColor: 'primary.main' },
-                  },
-                }}
               >
-                <MenuItem value="date-desc">Newest First</MenuItem>
-                <MenuItem value="date-asc">Oldest First</MenuItem>
-                <MenuItem value="amount-desc">Highest Amount</MenuItem>
-                <MenuItem value="amount-asc">Lowest Amount</MenuItem>
-              </Select>
+                {[
+                  ['date-desc','Newest First'],['date-asc','Oldest First'],
+                  ['amount-desc','Highest Amount'],['amount-asc','Lowest Amount'],
+                ].map(([v, l]) => (
+                  <MenuItem key={v} value={v} sx={{ fontFamily: "'DM Sans'", fontSize: 13 }}>{l}</MenuItem>
+                ))}
+              </GoldSelect>
             </FormControl>
-          </Box>
 
-          {orders.length > 0 && (
-            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap', textAlign: { xs: 'center', sm: 'right' } }}>
-              Showing {filteredAndSortedOrders.length} of {orders.length} orders
+            <Box sx={{ flex: 1 }} />
+            <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 13, color: '#9e8e72' }}>
+              <Box component="span" sx={{ fontWeight: 600, color: '#3d2d0e' }}>{filteredAndSortedOrders.length}</Box>
+              {' '}of{' '}
+              <Box component="span" sx={{ fontWeight: 600, color: '#3d2d0e' }}>{orders.length}</Box>
+              {' '}orders
             </Typography>
-          )}
-        </Paper>
-      )}
+          </FilterBar>
+        )}
 
-      <Stack spacing={3}>
-        {filteredAndSortedOrders.map((order) => {
-          const id = order._id || order.id;
-          const total = order.totalPrice ?? order.totalAmount ?? order.total ?? 0;
-          const status = getDisplayStatus(order);
-          const createdAt = order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A';
-          const deliveredAt = normalizeStatus(order) === 'delivered' && order.deliveredAt
-            ? new Date(order.deliveredAt).toLocaleString()
-            : null;
-          const items = order.items || [];
-          const shipment = order.shipment || {};
-          const shipmentTimeline = Array.isArray(shipment.timeline) ? [...shipment.timeline].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)) : [];
-          const returnRequest = order.returnRequest || {};
-          const returnEvents = Array.isArray(returnRequest.events)
-            ? [...returnRequest.events].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-            : [];
-          const latestReturnEvent = returnEvents[0];
-          const lastReturnUpdate = latestReturnEvent?.timestamp || returnRequest.decisionAt || returnRequest.requestedAt;
-          const hasActiveReturn = returnRequest?.status && returnRequest.status !== 'none';
-          return (
-            <Paper
-              key={id}
-              sx={{
-                p: 4,
-                borderRadius: 4,
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(248,250,252,0.95))',
-                border: '1px solid rgba(124,58,237,0.12)',
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 20px 40px rgba(124,58,237,0.15)',
-                },
-              }}
-            >
-              <Box display="flex" justifyContent="space-between" mb={2}>
-                <Typography variant="h6" fontWeight={700} sx={{ color: 'primary.main' }}>
-                  Order #{id?.toString().slice(-8)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                  {createdAt}
-                </Typography>
-              </Box>
-              <Chip
-                size="small"
-                label={status}
-                color={status === 'Delivered' ? 'success' : status === 'Paid' ? 'warning' : status === 'Cancelled' ? 'error' : 'default'}
-                sx={{ mb: 1 }}
-              />
-              {deliveredAt && (
-                <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
-                  Delivered on: {deliveredAt}
-                </Typography>
-              )}
-              <Divider sx={{ my: 2, borderColor: 'rgba(124,58,237,0.2)' }} />
-              {items.map((item, index) => (
-                <Typography key={`${id}-${index}`} variant="body1" color="text.secondary" sx={{ mb: 1 }}>
-                  {item?.product?.name || item.name || item.productName || 'Product'} x {item.quantity || 1}
-                </Typography>
-              ))}
-              <Typography sx={{ mt: 2, fontSize: '1.1rem' }} fontWeight={700} color="primary.main">
-                Total: {formatINR(total)}
-              </Typography>
+        {/* ── Order Cards ── */}
+        <Stack spacing={2.5}>
+          {filteredAndSortedOrders.map((order, idx) => {
+            const id = order._id || order.id;
+            const total = order.totalPrice ?? order.totalAmount ?? order.total ?? 0;
+            const status = getDisplayStatus(order);
+            const createdAt = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
+            const createdTime = order.createdAt ? new Date(order.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+            const deliveredAt = normalizeStatus(order) === 'delivered' && order.deliveredAt
+              ? new Date(order.deliveredAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+              : null;
+            const items = order.items || [];
+            const shipment = order.shipment || {};
+            const shipmentTimeline = Array.isArray(shipment.timeline)
+              ? [...shipment.timeline].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+              : [];
+            const returnRequest = order.returnRequest || {};
+            const returnEvents = Array.isArray(returnRequest.events)
+              ? [...returnRequest.events].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+              : [];
+            const latestReturnEvent = returnEvents[0];
+            const lastReturnUpdate = latestReturnEvent?.timestamp || returnRequest.decisionAt || returnRequest.requestedAt;
+            const hasActiveReturn = returnRequest?.status && returnRequest.status !== 'none';
 
-              {(shipment.trackingId || shipment.courier || shipment.trackingUrl || shipmentTimeline.length > 0) && (
-                <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: 'grey.50', border: '1px solid', borderColor: 'divider' }}>
-                  <Typography variant="subtitle2" sx={{ mb: 1 }}>Shipment</Typography>
-                  {shipment.courier && <Typography variant="body2" color="text.secondary">Courier: {shipment.courier}</Typography>}
-                  {shipment.trackingId && <Typography variant="body2" color="text.secondary">Tracking ID: {shipment.trackingId}</Typography>}
-                  {shipment.trackingUrl && (
-                    <Typography variant="body2">
-                      <a href={shipment.trackingUrl} target="_blank" rel="noreferrer">Track shipment</a>
-                    </Typography>
-                  )}
-                  {shipmentTimeline.length > 0 && (
-                    <Box sx={{ mt: 1 }}>
-                      {shipmentTimeline.slice(0, 4).map((event, eventIndex) => (
-                        <Typography key={`${id}-event-${eventIndex}`} variant="caption" display="block" color="text.secondary">
-                          {new Date(event.timestamp).toLocaleString()} - {String(event.status || '').replaceAll('_', ' ')}
-                          {event.location ? ` (${event.location})` : ''}
-                        </Typography>
-                      ))}
+            return (
+              <OrderCard key={id} delay={Math.min(idx * 0.05, 0.3)}>
+                {/* Card Header */}
+                <OrderCardHeader>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box sx={{
+                      width: 40, height: 40, borderRadius: 10,
+                      background: 'rgba(212,167,60,0.12)',
+                      border: '1px solid rgba(212,167,60,0.2)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <ReceiptLongIcon sx={{ fontSize: 20, color: '#d4a73c' }} />
                     </Box>
-                  )}
-                </Box>
-              )}
-
-              {/* Action Buttons */}
-              <Box sx={{ mt: 3, display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                <Button
-                  size="small"
-                  component={RouterLink}
-                  to={`/track/${id}`}
-                  variant="outlined"
-                >
-                  Track
-                </Button>
-                {normalizeStatus(order) === 'delivered' && (!order.returnRequest || order.returnRequest.status === 'none' || order.returnRequest.status === 'rejected' || order.returnRequest.status === 'closed') && (
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="warning"
-                    onClick={() => setReturnDialog({ open: true, orderId: id })}
-                  >
-                    Request Return
-                  </Button>
-                )}
-                {hasActiveReturn && (
-                  <Chip size="small" label={`Return: ${formatLabel(returnRequest.status)}`} color="warning" />
-                )}
-                <Tooltip title="Download Invoice">
-                  <IconButton
-                    onClick={() => handleDownloadInvoice(id)}
-                    sx={{
-                      bgcolor: 'primary.main',
-                      color: 'white',
-                      '&:hover': { bgcolor: 'primary.dark' },
-                      borderRadius: 2,
-                    }}
-                    size="small"
-                  >
-                    <DownloadIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-
-                <Tooltip title="Email Invoice">
-                  <IconButton
-                    onClick={() => handleSendInvoiceEmail(id)}
-                    sx={{
-                      bgcolor: 'secondary.main',
-                      color: 'white',
-                      '&:hover': { bgcolor: 'secondary.dark' },
-                      borderRadius: 2,
-                    }}
-                    size="small"
-                  >
-                    <EmailIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-
-              {hasActiveReturn && (
-                <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: 'warning.50', border: '1px solid', borderColor: 'warning.light' }}>
-                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                    Return Details
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Current Status: <strong>{formatLabel(returnRequest.status)}</strong>
-                  </Typography>
-                  {lastReturnUpdate && (
-                    <Typography variant="body2" color="text.secondary">
-                      Last Update: {new Date(lastReturnUpdate).toLocaleString()}
-                    </Typography>
-                  )}
-                  {returnRequest.decisionNote && (
-                    <Typography variant="body2" color="text.secondary">
-                      Admin Note: {returnRequest.decisionNote}
-                    </Typography>
-                  )}
-                  {returnRequest.refundAmount !== undefined && returnRequest.refundAmount !== null && (
-                    <Typography variant="body2" color="text.secondary">
-                      Refund Amount: {formatINR(returnRequest.refundAmount)}
-                    </Typography>
-                  )}
-
-                  {returnEvents.length > 0 && (
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
-                        Timeline
+                    <Box>
+                      <Typography sx={{ fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 14, color: '#1a1208' }}>
+                        Order #{id?.toString().slice(-8).toUpperCase()}
                       </Typography>
-                      {returnEvents.map((event, eventIndex) => (
-                        <Typography key={`${id}-return-event-${eventIndex}`} variant="caption" display="block" color="text.secondary">
-                          {new Date(event.timestamp).toLocaleString()} - {formatLabel(event.status)}
-                          {event.note ? ` | ${event.note}` : ''}
+                      <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 12, color: '#9e8e72' }}>
+                        {createdAt} · {createdTime}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <StatusBadge status={status} />
+                    {deliveredAt && (
+                      <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 11, color: '#9e8e72' }}>
+                        Delivered {deliveredAt}
+                      </Typography>
+                    )}
+                  </Box>
+                </OrderCardHeader>
+
+                {/* Card Body */}
+                <OrderCardBody>
+                  {/* Items */}
+                  <Box sx={{ mb: 2 }}>
+                    {items.map((item, index) => (
+                      <Box key={`${id}-${index}`} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.6 }}>
+                        <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 14, color: '#3d2d0e' }}>
+                          {item?.product?.name || item.name || item.productName || 'Product'}
                         </Typography>
-                      ))}
+                        <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 13, color: '#9e8e72', fontWeight: 500 }}>
+                          × {item.quantity || 1}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+
+                  {/* Divider + Total */}
+                  <Box sx={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    pt: 1.5, borderTop: '1px solid rgba(212,167,60,0.12)', mb: 2,
+                  }}>
+                    <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 13, color: '#9e8e72' }}>Order Total</Typography>
+                    <Typography sx={{
+                      fontFamily: "'DM Serif Display', Georgia, serif",
+                      fontSize: '1.3rem', color: '#1a1208', letterSpacing: '-0.01em',
+                    }}>
+                      {formatINR(total)}
+                    </Typography>
+                  </Box>
+
+                  {/* Shipment Info */}
+                  {(shipment.trackingId || shipment.courier || shipment.trackingUrl || shipmentTimeline.length > 0) && (
+                    <Box sx={{
+                      mb: 2, p: 2, borderRadius: 12,
+                      background: '#faf8f4',
+                      border: '1px solid rgba(212,167,60,0.15)',
+                    }}>
+                      <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, color: '#5c4a28', mb: 1, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Shipment
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: shipmentTimeline.length ? 1.5 : 0 }}>
+                        {shipment.courier && (
+                          <Box>
+                            <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 11, color: '#9e8e72' }}>Courier</Typography>
+                            <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 13, color: '#3d2d0e', fontWeight: 600 }}>{shipment.courier}</Typography>
+                          </Box>
+                        )}
+                        {shipment.trackingId && (
+                          <Box>
+                            <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 11, color: '#9e8e72' }}>Tracking ID</Typography>
+                            <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 13, color: '#3d2d0e', fontWeight: 600 }}>{shipment.trackingId}</Typography>
+                          </Box>
+                        )}
+                        {shipment.trackingUrl && (
+                          <Box>
+                            <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 11, color: '#9e8e72' }}>Link</Typography>
+                            <Typography component="a" href={shipment.trackingUrl} target="_blank" rel="noreferrer"
+                              sx={{ fontFamily: "'DM Sans'", fontSize: 13, color: '#d4a73c', fontWeight: 600, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                              Track Shipment ↗
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                      {shipmentTimeline.length > 0 && (
+                        <Stack spacing={0}>
+                          {shipmentTimeline.slice(0, 4).map((event, ei) => (
+                            <TimelineEvent key={ei} event={event} isLast={ei === Math.min(3, shipmentTimeline.length - 1)} />
+                          ))}
+                        </Stack>
+                      )}
                     </Box>
                   )}
-                </Box>
-              )}
-            </Paper>
-          );
-        })}
-      </Stack>
 
-      {/* Snackbar for notifications */}
+                  {/* Return Info */}
+                  {hasActiveReturn && (
+                    <Box sx={{
+                      mb: 2, p: 2, borderRadius: 12,
+                      background: 'rgba(245,158,11,0.06)',
+                      border: '1px solid rgba(245,158,11,0.2)',
+                    }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          Return Request
+                        </Typography>
+                        <Box sx={{
+                          px: 1.5, py: 0.4, borderRadius: 50,
+                          background: 'rgba(245,158,11,0.15)',
+                          border: '1px solid rgba(245,158,11,0.3)',
+                          fontFamily: "'DM Sans'", fontSize: 11, fontWeight: 600, color: '#92400e',
+                        }}>
+                          {formatLabel(returnRequest.status)}
+                        </Box>
+                      </Box>
+                      {lastReturnUpdate && (
+                        <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 12, color: '#9e8e72', mb: 0.5 }}>
+                          Last update: {new Date(lastReturnUpdate).toLocaleString()}
+                        </Typography>
+                      )}
+                      {returnRequest.decisionNote && (
+                        <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 13, color: '#5c4a28', mb: 0.5 }}>
+                          Note: {returnRequest.decisionNote}
+                        </Typography>
+                      )}
+                      {returnRequest.refundAmount != null && (
+                        <Typography sx={{ fontFamily: "'DM Sans'", fontSize: 13, color: '#5c4a28', fontWeight: 600 }}>
+                          Refund: {formatINR(returnRequest.refundAmount)}
+                        </Typography>
+                      )}
+                      {returnEvents.length > 0 && (
+                        <Box sx={{ mt: 1.5 }}>
+                          <Stack spacing={0}>
+                            {returnEvents.map((event, ei) => (
+                              <TimelineEvent key={ei} event={event} isLast={ei === returnEvents.length - 1} />
+                            ))}
+                          </Stack>
+                        </Box>
+                      )}
+                    </Box>
+                  )}
+
+                  {/* Action Buttons */}
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <Button
+                      size="small"
+                      component={RouterLink}
+                      to={`/track/${id}`}
+                      variant="outlined"
+                      endIcon={<KeyboardArrowRightIcon fontSize="small" />}
+                      sx={{
+                        fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 600,
+                        borderColor: 'rgba(212,167,60,0.3)', color: '#b8871e',
+                        borderRadius: 50, textTransform: 'none', px: 2,
+                        '&:hover': { borderColor: '#d4a73c', background: 'rgba(212,167,60,0.06)' },
+                      }}
+                    >
+                      Track Order
+                    </Button>
+
+                    {normalizeStatus(order) === 'delivered' &&
+                      (!order.returnRequest || ['none', 'rejected', 'closed'].includes(order.returnRequest.status)) && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => setReturnDialog({ open: true, orderId: id })}
+                        sx={{
+                          fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 600,
+                          borderColor: 'rgba(245,158,11,0.35)', color: '#b45309',
+                          borderRadius: 50, textTransform: 'none', px: 2,
+                          '&:hover': { borderColor: '#f59e0b', background: 'rgba(245,158,11,0.06)' },
+                        }}
+                      >
+                        Request Return
+                      </Button>
+                    )}
+
+                    <Box sx={{ flex: 1 }} />
+
+                    <Tooltip title="Download Invoice" placement="top">
+                      <IconButton
+                        onClick={() => handleDownloadInvoice(id)}
+                        size="small"
+                        sx={{
+                          background: 'linear-gradient(135deg, #d4a73c, #b8871e)',
+                          color: '#fff', borderRadius: 10, width: 34, height: 34,
+                          '&:hover': { background: 'linear-gradient(135deg, #c89a30, #a77a18)', transform: 'scale(1.08)' },
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        <DownloadIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+
+                    <Tooltip title="Email Invoice" placement="top">
+                      <IconButton
+                        onClick={() => handleSendInvoiceEmail(id)}
+                        size="small"
+                        sx={{
+                          background: 'linear-gradient(135deg, #3d2d0e, #5c4a28)',
+                          color: '#d4a73c', borderRadius: 10, width: 34, height: 34,
+                          '&:hover': { background: 'linear-gradient(135deg, #2d1f0a, #3d2d0e)', transform: 'scale(1.08)' },
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        <EmailIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </OrderCardBody>
+              </OrderCard>
+            );
+          })}
+        </Stack>
+      </Container>
+
+      {/* ── Snackbar ── */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
+        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+        <Alert
+          onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+          severity={snackbar.severity}
+          sx={{ borderRadius: 3, fontFamily: "'DM Sans'", fontSize: 13 }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
 
-      <Dialog open={returnDialog.open} onClose={() => setReturnDialog({ open: false, orderId: '' })} fullWidth maxWidth="sm">
-        <DialogTitle>Request Return</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ pt: 1 }}>
-            <FormControl fullWidth>
-              <InputLabel>Reason Code</InputLabel>
-              <Select
+      {/* ── Return Dialog ── */}
+      <Dialog
+        open={returnDialog.open}
+        onClose={() => setReturnDialog({ open: false, orderId: '' })}
+        fullWidth maxWidth="sm"
+        PaperProps={{
+          sx: {
+            borderRadius: 4, border: '1px solid rgba(212,167,60,0.15)',
+            boxShadow: '0 24px 64px rgba(26,18,8,0.16)',
+          },
+        }}
+      >
+        <DialogTitle sx={{
+          fontFamily: "'DM Serif Display', Georgia, serif",
+          fontSize: '1.4rem', fontWeight: 400, color: '#1a1208',
+          borderBottom: '1px solid rgba(212,167,60,0.15)', pb: 2,
+        }}>
+          Request Return
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Stack spacing={2.5}>
+            <FormControl fullWidth size="small">
+              <InputLabel sx={{ fontFamily: "'DM Sans'", fontSize: 13, '&.Mui-focused': { color: '#d4a73c' } }}>
+                Reason
+              </InputLabel>
+              <GoldSelect
                 value={returnForm.reasonCode}
-                label="Reason Code"
-                onChange={(e) => setReturnForm((prev) => ({ ...prev, reasonCode: e.target.value }))}
+                label="Reason"
+                onChange={(e) => setReturnForm(p => ({ ...p, reasonCode: e.target.value }))}
               >
-                {['damaged', 'wrong_item', 'not_as_described', 'missing_parts', 'size_issue', 'quality_issue', 'other'].map((code) => (
-                  <MenuItem key={code} value={code}>{code.replaceAll('_', ' ')}</MenuItem>
+                {['damaged','wrong_item','not_as_described','missing_parts','size_issue','quality_issue','other'].map(code => (
+                  <MenuItem key={code} value={code} sx={{ fontFamily: "'DM Sans'", fontSize: 13 }}>
+                    {formatLabel(code)}
+                  </MenuItem>
                 ))}
-              </Select>
+              </GoldSelect>
             </FormControl>
+
             <TextField
-              label="Reason Note"
-              multiline
-              minRows={3}
+              label="Additional Notes"
+              multiline minRows={3}
               value={returnForm.reasonNote}
-              onChange={(e) => setReturnForm((prev) => ({ ...prev, reasonNote: e.target.value }))}
+              onChange={(e) => setReturnForm(p => ({ ...p, reasonNote: e.target.value }))}
+              InputProps={{ sx: { fontFamily: "'DM Sans'", fontSize: 14, borderRadius: 2 } }}
+              InputLabelProps={{ sx: { fontFamily: "'DM Sans'", fontSize: 13, '&.Mui-focused': { color: '#d4a73c' } } }}
             />
+
             <TextField
               label="Evidence URLs (comma separated)"
               value={returnForm.evidenceUrls}
-              onChange={(e) => setReturnForm((prev) => ({ ...prev, evidenceUrls: e.target.value }))}
+              onChange={(e) => setReturnForm(p => ({ ...p, evidenceUrls: e.target.value }))}
+              InputProps={{ sx: { fontFamily: "'DM Sans'", fontSize: 14, borderRadius: 2 } }}
+              InputLabelProps={{ sx: { fontFamily: "'DM Sans'", fontSize: 13, '&.Mui-focused': { color: '#d4a73c' } } }}
             />
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setReturnDialog({ open: false, orderId: '' })}>Cancel</Button>
-          <Button variant="contained" onClick={submitReturnRequest}>Submit</Button>
+        <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+          <Button
+            onClick={() => setReturnDialog({ open: false, orderId: '' })}
+            sx={{
+              fontFamily: "'DM Sans'", textTransform: 'none', color: '#9e8e72',
+              borderRadius: 50, px: 3,
+              '&:hover': { background: 'rgba(212,167,60,0.06)' },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={submitReturnRequest}
+            sx={{
+              fontFamily: "'DM Sans'", fontWeight: 600, textTransform: 'none',
+              background: 'linear-gradient(135deg, #d4a73c, #b8871e)',
+              borderRadius: 50, px: 3,
+              boxShadow: '0 4px 16px rgba(212,167,60,0.35)',
+              '&:hover': { background: 'linear-gradient(135deg, #c89a30, #a77a18)' },
+            }}
+          >
+            Submit Request
+          </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </PageRoot>
   );
 };
 
