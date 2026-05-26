@@ -1,9 +1,20 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Box, Button, Container, Grid, Paper, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Container, FormControl, Grid, InputLabel, MenuItem, Paper, Select, Stack, TextField, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from './contexts/CartContext';
 import { addAddress, createOrder, getAddresses, validateCoupon } from './services/api';
 import { formatINR } from './utils/currency';
+
+const PAYMENT_METHODS = [
+  { value: 'cod', label: 'Cash on Delivery' },
+  { value: 'card', label: 'Credit / Debit Card' },
+  { value: 'upi', label: 'UPI' },
+  { value: 'netbanking', label: 'Net Banking' },
+  { value: 'wallet', label: 'Digital Wallet' },
+  { value: 'paypal', label: 'PayPal' },
+  { value: 'razorpay', label: 'Razorpay' },
+  { value: 'stripe', label: 'Stripe' },
+];
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -21,6 +32,7 @@ const CheckoutPage = () => {
     state: '',
     postalCode: '',
   });
+  const [paymentMethod, setPaymentMethod] = useState('cod');
 
   const canSubmit = useMemo(() => {
     return (
@@ -66,6 +78,10 @@ const CheckoutPage = () => {
     setAddress((prev) => ({ ...prev, [field]: event.target.value }));
   };
 
+  const handlePaymentMethodChange = (event) => {
+    setPaymentMethod(event.target.value);
+  };
+
   const handlePlaceOrder = async () => {
     if (!canSubmit) return;
     setIsSubmitting(true);
@@ -89,7 +105,7 @@ const CheckoutPage = () => {
           phone: address.phone,
           fullName: address.fullName,
         },
-        paymentMethod: 'COD',
+        paymentMethod: paymentMethod,
         couponCode: couponInfo?.code,
       });
       try {
@@ -287,6 +303,21 @@ const CheckoutPage = () => {
               <Typography sx={{ fontWeight: 600 }}>Shipping</Typography>
               <Typography sx={{ fontWeight: 600, color: 'success.main' }}>Free</Typography>
             </Box>
+            <FormControl fullWidth size="small" sx={{ mb: 3 }}>
+              <InputLabel id="payment-method-label">Payment Method</InputLabel>
+              <Select
+                labelId="payment-method-label"
+                value={paymentMethod}
+                label="Payment Method"
+                onChange={handlePaymentMethodChange}
+              >
+                {PAYMENT_METHODS.map((method) => (
+                  <MenuItem key={method.value} value={method.value}>
+                    {method.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <Box display="flex" gap={1} mb={2}>
               <TextField size="small" fullWidth label="Coupon code" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} />
               <Button variant="outlined" onClick={handleApplyCoupon}>Apply</Button>

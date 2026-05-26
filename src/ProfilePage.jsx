@@ -148,16 +148,16 @@ const ProfilePage = () => {
         <Paper
           sx={{
             p: 4,
-            background: 'linear-gradient(135deg, rgba(124,58,237,0.9), rgba(236,72,153,0.9))',
+            background: 'white',
             color: 'common.white',
             borderRadius: 4,
             mb: 2,
           }}
         >
-          <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, mb: 1, color: 'primary.main' }}>
             Your Profile
           </Typography>
-          <Typography variant="body1" sx={{ opacity: 0.92 }}>
+          <Typography variant="body1" sx={{ opacity: 0.92, color: 'text.secondary' }}>
             Manage your account details and preferences
           </Typography>
         </Paper>
