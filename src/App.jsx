@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Link as RouterLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Container, Box, Button, Badge, IconButton } from '@mui/material';
-import { ShoppingCart, Person, FavoriteBorder, Search } from '@mui/icons-material';
+import { ShoppingCart, Person, FavoriteBorder, Search, LocationOn } from '@mui/icons-material';
 import { CartProvider, useCart } from './contexts/CartContext';
 import ProductList from './ProductListPage';
 import Login from './Login';
@@ -17,6 +17,7 @@ import WishlistPage from './WishlistPage';
 import TrackOrderPage from './TrackOrderPage';
 import AboutUsPage from './AboutUsPage';
 import ContactUsPage from './ContactUsPage';
+import AddressBookPage from './AddressBookPage';
 
 // Routes where navbar should go dark/glass and container spacing removed
 const IMMERSIVE_ROUTES = ['/login', '/sign-up'];
@@ -81,6 +82,16 @@ function Navigation() {
     return children;
   };
 
+  const AdminRoute = ({ children }) => {
+    if (!isLoggedIn) {
+      return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+    }
+    if (role !== 'admin') {
+      return <Navigate to="/products" replace />;
+    }
+    return children;
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <AppBar
@@ -96,10 +107,19 @@ function Navigation() {
         }}
       >
         <Container maxWidth="lg">
-          <Toolbar disableGutters sx={{ minHeight: { xs: 56, sm: 64 }, alignItems: 'center', gap: 1 }}>
+          <Toolbar
+            disableGutters
+            sx={{
+              minHeight: { xs: 56, sm: 64 },
+              display: 'grid',
+              gridTemplateColumns: 'auto 1fr auto',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               {(!isLoggedIn || isImmersive) && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2.5 }, mr: { xs: 1, sm: 3 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2.5 } }}>
                   <Button
                     color="inherit"
                     component={RouterLink}
@@ -141,36 +161,34 @@ function Navigation() {
                   </Button>
                 </Box>
               )}
-              <Box
-                component={RouterLink}
-                to="/products"
+            </Box>
+
+            <Box
+              component={RouterLink}
+              to="/products"
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                textDecoration: 'none',
+                color: 'inherit',
+              }}
+            >
+              <Typography
+                variant="h5"
+                component="div"
                 sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  position: { sm: 'absolute' },
-                  left: { sm: '50%' },
-                  transform: { sm: 'translateX(-50%)' },
+                  fontWeight: 500,
+                  letterSpacing: 0,
+                  color: '#d4a73c',
+                  lineHeight: 1.1,
+                  fontSize: { xs: '1.8rem', sm: '2rem' },
+                  fontFamily: 'Georgia, "Times New Roman", serif',
                 }}
               >
-                <Typography
-                  variant="h5"
-                  component="div"
-                  sx={{
-                    fontWeight: 500,
-                    letterSpacing: 0,
-                    color: '#d4a73c',
-                    lineHeight: 1.1,
-                    fontSize: { xs: '1.8rem', sm: '2rem' },
-                    fontFamily: 'Georgia, "Times New Roman", serif',
-                  }}
-                >
-                  Shoply
-                </Typography>
-              </Box>
+                Shoply
+              </Typography>
             </Box>
-            <Box sx={{ flexGrow: 1 }} />
+
             {!isImmersive && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1.5 }, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {isLoggedIn && !isAdminDashboard && (
@@ -248,6 +266,15 @@ function Navigation() {
                           sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}
                         >
                           <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Profile</Box>
+                        </Button>
+                        <Button
+                          color="inherit"
+                          startIcon={<LocationOn />}
+                          component={RouterLink}
+                          to="/addresses"
+                          sx={{ textTransform: 'none', fontWeight: 600, minWidth: { xs: 'auto', sm: 64 }, px: { xs: 1, sm: 1.5 }, fontSize: { xs: '0.78rem', sm: '0.875rem' } }}
+                        >
+                          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Addresses</Box>
                         </Button>
                       </>
                     )}
@@ -337,6 +364,14 @@ function Navigation() {
             }
           />
           <Route
+            path='/addresses'
+            element={
+              <ProtectedRoute>
+                <AddressBookPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path='/wishlist'
             element={
               <ProtectedRoute>
@@ -347,9 +382,9 @@ function Navigation() {
           <Route
             path='/admin'
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <AdminPage />
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
         </Routes>

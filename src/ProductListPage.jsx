@@ -10,6 +10,10 @@ import {
   Pagination,
   InputAdornment,
   Chip,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
 } from '@mui/material';
 import ProductCard from './ProductCard';
 import API from './axiosInstance';
@@ -197,6 +201,7 @@ const ProductList = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState(ALL_LABEL);
+  const [selectedBrand, setSelectedBrand] = useState(ALL_LABEL);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
   const { cartCount } = useCart();
@@ -259,6 +264,11 @@ const ProductList = () => {
     return [ALL_LABEL, ...Array.from(cats).sort()];
   }, [enrichedProducts]);
 
+  const brands = useMemo(() => {
+    const uniqueBrands = new Set(enrichedProducts.map((p) => (p.brand || '').trim()).filter(Boolean));
+    return [ALL_LABEL, ...Array.from(uniqueBrands).sort()];
+  }, [enrichedProducts]);
+
   const filteredProducts = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     return enrichedProducts.filter((product) => {
@@ -267,9 +277,10 @@ const ProductList = () => {
         (product.description || '').toLowerCase().includes(q) ||
         (product.brand || '').toLowerCase().includes(q);
       const matchesCategory = activeCategory === ALL_LABEL || product.displayCategory === activeCategory;
-      return matchesSearch && matchesCategory;
+      const matchesBrand = selectedBrand === ALL_LABEL || (product.brand || '').toLowerCase() === selectedBrand.toLowerCase();
+      return matchesSearch && matchesCategory && matchesBrand;
     });
-  }, [enrichedProducts, searchTerm, activeCategory]);
+  }, [enrichedProducts, searchTerm, activeCategory, selectedBrand]);
 
   if (error) {
     return (
@@ -397,6 +408,24 @@ const ProductList = () => {
               Clear filters
             </Button>
           )}
+        </Box>
+
+        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: '1fr', '@media (min-width:900px)': { gridTemplateColumns: '240px 1fr' }, mb: 3 }}>
+          <FormControl fullWidth size="small">
+            <InputLabel id="brand-filter-label">Brand</InputLabel>
+            <Select
+              labelId="brand-filter-label"
+              id="brand-filter"
+              value={selectedBrand}
+              label="Brand"
+              onChange={(e) => setSelectedBrand(e.target.value)}
+            >
+              <MenuItem value={ALL_LABEL}>All</MenuItem>
+              {brands.map((brand) => brand !== ALL_LABEL && (
+                <MenuItem key={brand} value={brand}>{brand}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Box>
 
         {/* ── Product Grid ── */}

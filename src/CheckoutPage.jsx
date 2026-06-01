@@ -90,7 +90,7 @@ const CheckoutPage = () => {
     try {
       await createOrder({
         items: cart.map((item) => ({
-          product: item._id,
+          product: item.productId || item._id,
           quantity: item.quantity,
           price: item.price,
           variantId: item.variantId || undefined,

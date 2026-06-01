@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { addToCart as addToCartApi, clearCartRemote, getAuthToken, getCart as getCartApi, removeFromCart as removeFromCartApi, updateCartItem as updateCartItemApi } from '../services/api';
 
 const CartContext = createContext();
 const buildLineId = (productId, variantId) => `${productId}:${variantId || 'base'}`;
@@ -16,6 +17,30 @@ export const CartProvider = ({ children }) => {
       localStorage.setItem('cart', JSON.stringify(cart));
     }
   }, [cart]);
+
+  useEffect(() => {
+    const hydrateServerCart = async () => {
+      if (!getAuthToken()) return;
+      try {
+        const serverCart = await getCartApi();
+        setCart(serverCart);
+      } catch (error) {
+        console.error('Failed to load server cart', error);
+      }
+    };
+    const resetToLocal = () => {
+      const savedCart = localStorage.getItem('cart');
+      setCart(savedCart ? JSON.parse(savedCart) : []);
+    };
+
+    hydrateServerCart();
+    window.addEventListener('auth:changed', hydrateServerCart);
+    window.addEventListener('auth:expired', resetToLocal);
+    return () => {
+      window.removeEventListener('auth:changed', hydrateServerCart);
+      window.removeEventListener('auth:expired', resetToLocal);
+    };
+  }, []);
 
   const addToCart = (product, quantity = 1, selectedVariant = null) => {
     const variantId = selectedVariant?._id || null;
@@ -56,10 +81,21 @@ export const CartProvider = ({ children }) => {
         }
       ];
     });
+    if (getAuthToken()) {
+      addToCartApi(product._id, quantity, variantId).then(setCart).catch((error) => {
+        console.error('Failed to sync addToCart', error);
+      });
+    }
   };
 
   const removeFromCart = (lineId) => {
+    const current = cart.find((item) => item.lineId === lineId);
     setCart(prevCart => prevCart.filter(item => item.lineId !== lineId));
+    if (getAuthToken() && current) {
+      removeFromCartApi(current.productId || current._id, current.variantId || null).then(setCart).catch((error) => {
+        console.error('Failed to sync removeFromCart', error);
+      });
+    }
   };
 
   const updateQuantity = (lineId, newQuantity) => {
@@ -72,10 +108,19 @@ export const CartProvider = ({ children }) => {
         item.lineId === lineId ? { ...item, quantity: newQuantity } : item
       )
     );
+    const current = cart.find((item) => item.lineId === lineId);
+    if (getAuthToken() && current) {
+      updateCartItemApi(current.productId || current._id, newQuantity, current.variantId || null).then(setCart).catch((error) => {
+        console.error('Failed to sync updateQuantity', error);
+      });
+    }
   };
 
   const clearCart = () => {
     setCart([]);
+    if (getAuthToken()) {
+      clearCartRemote().catch((error) => console.error('Failed to sync clearCart', error));
+    }
   };
 
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);

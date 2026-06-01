@@ -8,6 +8,32 @@ const clearAuthSession = () => {
   }
 };
 
+const apiFetch = async (url, options = {}, { skipAuthRetry = false } = {}) => {
+  let response = await fetch(url, options);
+  const hasBearer = Boolean(options?.headers?.Authorization);
+
+  if (response.status === 401 && hasBearer && !skipAuthRetry) {
+    try {
+      const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      const refreshData = await handleResponse(refreshResponse);
+      if (refreshData?.token) {
+        setAuthToken(refreshData.token);
+        const retriedHeaders = { ...(options.headers || {}), Authorization: `Bearer ${refreshData.token}` };
+        response = await fetch(url, { ...options, headers: retriedHeaders });
+      }
+    } catch (error) {
+      clearAuthSession();
+      throw error;
+    }
+  }
+
+  return response;
+};
+
 // Helper function to handle API responses
 const handleResponse = async (response) => {
   const contentType = response.headers.get('content-type');
@@ -78,11 +104,11 @@ export const verifyOtpLogin = async (phoneNumber, code) => {
 };
 
 export const refreshSession = async () => {
-  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+  const response = await apiFetch(`${API_BASE_URL}/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-  });
+  }, { skipAuthRetry: true });
   return await handleResponse(response);
 };
 
@@ -113,6 +139,9 @@ export const registerUser = async (name, email, password, phoneNumber) => {
 export const setAuthToken = (token) => {
   if (token) {
     localStorage.setItem('token', token);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:changed'));
+    }
   } else {
     clearAuthSession();
   }
@@ -232,32 +261,70 @@ export const removeFromWishlist = async (productId) => {
 
 // Cart API
 export const getCart = async () => {
-  const saved = localStorage.getItem('cart');
-  return saved ? JSON.parse(saved) : [];
+  const response = await apiFetch(`${API_BASE_URL}/cart`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include'
+  });
+  const data = await handleResponse(response);
+  return data.items || [];
 };
 
-export const addToCart = async (productId, quantity = 1) => {
-  const cart = await getCart();
-  const existing = cart.find((item) => item._id === productId);
-  const next = existing
-    ? cart.map((item) => (item._id === productId ? { ...item, quantity: item.quantity + quantity } : item))
-    : [...cart, { _id: productId, quantity }];
-  localStorage.setItem('cart', JSON.stringify(next));
-  return next;
+export const addToCart = async (productId, quantity = 1, variantId = null) => {
+  const response = await apiFetch(`${API_BASE_URL}/cart`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include',
+    body: JSON.stringify({ productId, quantity, variantId })
+  });
+  const data = await handleResponse(response);
+  return data.items || [];
 };
 
-export const updateCartItem = async (productId, quantity) => {
-  const cart = await getCart();
-  const next = cart.map((item) => (item._id === productId ? { ...item, quantity } : item));
-  localStorage.setItem('cart', JSON.stringify(next));
-  return next;
+export const updateCartItem = async (productId, quantity, variantId = null) => {
+  const response = await apiFetch(`${API_BASE_URL}/cart`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include',
+    body: JSON.stringify({ productId, quantity, variantId })
+  });
+  const data = await handleResponse(response);
+  return data.items || [];
 };
 
-export const removeFromCart = async (productId) => {
-  const cart = await getCart();
-  const next = cart.filter((item) => item._id !== productId);
-  localStorage.setItem('cart', JSON.stringify(next));
-  return next;
+export const removeFromCart = async (productId, variantId = null) => {
+  const query = variantId ? `?variantId=${encodeURIComponent(variantId)}` : '';
+  const response = await apiFetch(`${API_BASE_URL}/cart/${productId}${query}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include'
+  });
+  const data = await handleResponse(response);
+  return data.items || [];
+};
+
+export const clearCartRemote = async () => {
+  const response = await apiFetch(`${API_BASE_URL}/cart`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+    credentials: 'include'
+  });
+  const data = await handleResponse(response);
+  return data.items || [];
 };
 
 // Order API
